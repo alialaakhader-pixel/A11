@@ -81,14 +81,22 @@ def health(): return {'ok':True,'app':'ELLOOL AI API','provider':os.getenv('LLM_
 
 @app.post('/api/auth/register')
 def register(data:AuthIn,response:Response):
-    if not BOOTSTRAP_PASSWORD:
-        with conn() as c: has_admin=c.execute("SELECT 1 FROM users WHERE role='admin'").fetchone()
-        if not has_admin: raise HTTPException(503,'التسجيل متوقف حتى يضبط المسؤول BOOTSTRAP_ADMIN_PASSWORD في إعدادات الخادم.')
-    role='admin' if BOOTSTRAP_PASSWORD and hmac.compare_digest(data.password,BOOTSTRAP_PASSWORD) else 'user'
     uid=uuid.uuid4().hex; salt=secrets.token_bytes(16)
+    role='user'
     try:
-        with conn() as c: c.execute('INSERT INTO users VALUES(?,?,?,?,?,?)',(uid,data.username,salt.hex(),hash_password(data.password,salt),role,datetime.now(timezone.utc).isoformat()))
-    except sqlite3.IntegrityError: raise HTTPException(409,'اسم المستخدم مستخدم بالفعل')
+        with conn() as c:
+            # Bootstrap credentials are accepted exactly once; the marker and
+            # first admin insert share one transaction to avoid concurrent races.
+            used=c.execute("SELECT value FROM settings WHERE key='bootstrap_admin_used'").fetchone()
+            has_admin=c.execute("SELECT 1 FROM users WHERE role='admin' LIMIT 1").fetchone()
+            if not BOOTSTRAP_PASSWORD and not has_admin:
+                raise HTTPException(503,'التسجيل متوقف حتى يضبط المسؤول BOOTSTRAP_ADMIN_PASSWORD في إعدادات الخادم.')
+            if BOOTSTRAP_PASSWORD and not used and not has_admin and hmac.compare_digest(data.password,BOOTSTRAP_PASSWORD):
+                role='admin'
+                c.execute("INSERT INTO settings(key,value) VALUES('bootstrap_admin_used','true')")
+            c.execute('INSERT INTO users VALUES(?,?,?,?,?,?)',(uid,data.username,salt.hex(),hash_password(data.password,salt),role,datetime.now(timezone.utc).isoformat()))
+    except sqlite3.IntegrityError:
+        raise HTTPException(409,'اسم المستخدم مستخدم بالفعل')
     response.set_cookie('ellool_session',make_token(uid,role),httponly=True,samesite='lax',secure=COOKIE_SECURE,max_age=604800)
     return {'id':uid,'username':data.username,'role':role}
 
