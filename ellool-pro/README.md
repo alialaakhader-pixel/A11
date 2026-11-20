@@ -28,7 +28,7 @@ A Docker deployment is provided in `backend/`:
 
 To run it on a server you control:
 
-1. Install Docker Engine and the Docker Compose plugin. For useful speed, use a server with a supported GPU; CPU-only inference can be slow.
+1. Install Docker Engine and the Docker Compose plugin. For useful speed, use a server with an NVIDIA GPU. If it has NVIDIA Container Toolkit, run `docker compose -f compose.yaml -f compose.nvidia.yaml up -d --build`; otherwise run `docker compose up -d --build` (CPU inference can be slow).
 2. In `ellool-pro/backend`, copy `.env.selfhost.example` to `.env`.
 3. Generate unique random values for `APP_SECRET` and `ELLOOL_API_KEY`; set a unique `BOOTSTRAP_ADMIN_PASSWORD`. Do not commit or share the real `.env`.
 4. Set `CORS_ORIGINS=https://ellool-ai-studio.vercel.app`.
