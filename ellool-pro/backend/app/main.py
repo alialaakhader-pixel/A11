@@ -173,22 +173,27 @@ def delete_knowledge(did:str,user=Depends(admin)):
     return {'ok':True}
 
 async def call_model(messages,temperature):
-    provider=os.getenv('LLM_PROVIDER','ollama').lower()
-    timeout=httpx.Timeout(180,connect=10)
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        if provider=='ollama':
-            url=os.getenv('OLLAMA_BASE_URL','http://127.0.0.1:11434').rstrip('/')+'/api/chat'
-            payload={'model':os.getenv('OLLAMA_MODEL','qwen2.5:7b'),'messages':messages,'stream':False,'options':{'temperature':temperature}}
+    """Run inference only against the Ollama model owned by this deployment."""
+    url=os.getenv('OLLAMA_BASE_URL','http://127.0.0.1:11434').rstrip('/')+'/api/chat'
+    payload={
+        'model':os.getenv('OLLAMA_MODEL','qwen2.5:3b'),
+        'messages':messages,
+        'stream':False,
+        'options':{'temperature':temperature}
+    }
+    timeout=httpx.Timeout(240,connect=15)
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
             r=await client.post(url,json=payload)
-            if r.status_code>=400: raise HTTPException(502,'تعذر الاتصال بمحرك Ollama؛ تأكد أن عنوانه متاح من الخادم.')
-            return r.json().get('message',{}).get('content','')
-        url=os.getenv('OPENAI_BASE_URL','http://127.0.0.1:1234/v1').rstrip('/')+'/chat/completions'
-        headers={}
-        key=os.getenv('OPENAI_API_KEY','')
-        if key: headers['Authorization']='Bearer '+key
-        r=await client.post(url,json={'model':os.getenv('OPENAI_MODEL','local-model'),'messages':messages,'temperature':temperature},headers=headers)
-        if r.status_code>=400: raise HTTPException(502,'تعذر الاتصال بمزود النموذج')
-        return r.json()['choices'][0]['message']['content']
+            if r.status_code>=400:
+                raise HTTPException(502,'محرك Ollama المحلي رفض الطلب؛ تحقق من تنزيل النموذج وتشغيله.')
+            answer=r.json().get('message',{}).get('content','')
+            if not answer:
+                raise HTTPException(502,'محرك اللول المحلي لم يرجع إجابة.')
+            return answer
+    except httpx.RequestError:
+        raise HTTPException(503,'محرك اللول المحلي غير متاح حالياً. شغّل خادم Ollama على نفس الخادم.')
+
 
 
 @app.post('/v1/chat/completions')
