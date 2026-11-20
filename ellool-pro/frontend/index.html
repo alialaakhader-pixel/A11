@@ -303,7 +303,7 @@ const setStatus=t=>{$('#brainStatus').textContent=t||''};
 const explainEngineAvailability=()=>{if(S.v?.engine==='local'&&!navigator.gpu)setStatus('هذا الجهاز لا يدعم WebGPU؛ جرّب متصفحاً وجهازاً يدعمان WebGPU أو شغّل خادم Ollama تملكه. لا يوجد تحويل تلقائي لخدمة ذكاء اصطناعي خارجية.');};
 
 const S={key:null,salt:null,v:null,cur:null,gallery:[],busy:false,locked:true,tmp:[],ctl:null};
-const newVault=()=>({engine:'cloudflare',localModel:'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',server:{url:'https://ellool-ai-brain.ellool-ai.workers.dev/v1',model:'@cf/meta/llama-3.3-70b-instruct-fp8-fast',key:''},imgServer:'',system:PERSONA,connectors:[],keys:[],chats:[],lock:15,policy:{openness:55,allowCreative:true,allowCode:true,allowRoleplay:true,allowWeb:false,customAllow:'',customDeny:''}});
+const newVault=()=>({engineChoiceVersion:2,engine:'cloudflare',localModel:'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',server:{url:'https://ellool-ai-brain.ellool-ai.workers.dev/v1',model:'@cf/meta/llama-3.3-70b-instruct-fp8-fast',key:''},imgServer:'',system:PERSONA,connectors:[],keys:[],chats:[],lock:15,policy:{openness:55,allowCreative:true,allowCode:true,allowRoleplay:true,allowWeb:false,customAllow:'',customDeny:''}});
 
 /* ---------- الخزنة المشفرة ---------- */
 async function saveVault(){
@@ -320,7 +320,7 @@ async function unlock(pass){
     const o=JSON.parse(raw);
     S.salt=unb64(o.salt);S.key=await deriveKey(pass,S.salt);
     S.v=JSON.parse(dec.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(o.iv)},S.key,unb64(o.ct))));
-    const d=newVault();S.v={...d,...S.v,server:{...d.server,...(S.v.server||{})}};if(S.v.engine==='local'&&S.v.server?.url==='https://YOUR-OWN-SERVER/v1'){S.v.engine='cloudflare';S.v.server={...d.server,...S.v.server};}
+    const d=newVault();S.v={...d,...S.v,server:{...d.server,...(S.v.server||{})}};if((S.v.engineChoiceVersion||0)<2){if(S.v.engine==='local')S.v.engine='cloudflare';S.v.engineChoiceVersion=2;}if(S.v.engine==='local'&&S.v.server?.url==='https://YOUR-OWN-SERVER/v1'){S.v.engine='cloudflare';S.v.server={...d.server,...S.v.server};}
     if(S.v.engine==='server'&&(S.v.server?.url==='/api'||/gemini/i.test(S.v.server?.model||''))){S.v.engine='local';S.v.localModel=S.v.localModel||'Qwen2.5-1.5B-Instruct-q4f16_1-MLC';}
     delete S.v.geminiKey;delete S.v.models;
     // Remove the old fast SHA-256 verifier; AES-GCM authentication is the verifier.
@@ -713,9 +713,9 @@ $('#sSave').onclick=async()=>{
   v.system=$('#sSys').value;v.lock=Math.max(1,+$('#sLock').value||15);await saveVault();toast('اتحفظ');startIdle();
 };
 $('#prepBtn').onclick=async()=>{
-  S.v.engine='local';S.v.localModel=$('#mLocal').value.trim()||S.v.localModel;await saveVault();
+  S.v.localModel=$('#mLocal').value.trim()||S.v.localModel;await saveVault();
   const b=$('#prepBtn');b.disabled=true;
-  try{await ensureLocal();toast('العقل جاهز ✅')}catch(e){toast(e.message,1);setStatus('')}
+  try{await ensureLocal();toast('النموذج المحلي جاهز. اختاره من قائمة المحرك لو عايز تستخدمه.')}catch(e){toast(e.message,1);setStatus('')}
   b.disabled=false;
 };
 $('#sReset').onclick=()=>{$('#sSys').value=PERSONA;toast('اضغط حفظ للتأكيد')};
