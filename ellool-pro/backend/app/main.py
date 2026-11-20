@@ -22,7 +22,7 @@ BOOTSTRAP_PASSWORD=os.getenv('BOOTSTRAP_ADMIN_PASSWORD','')
 COOKIE_SECURE=os.getenv('COOKIE_SECURE','false').lower()=='true'
 app=FastAPI(title='ELLOOL AI API',version='1.0.1')
 origins=[x.strip() for x in os.getenv('CORS_ORIGINS','http://localhost:5173').split(',') if x.strip()]
-app.add_middleware(CORSMiddleware,allow_origins=origins,allow_credentials=True,allow_methods=['GET','POST','PUT','DELETE'],allow_headers=['Content-Type'])
+app.add_middleware(CORSMiddleware,allow_origins=origins,allow_credentials=True,allow_methods=['GET','POST','PUT','DELETE'],allow_headers=['Content-Type','Authorization'])
 
 def conn():
     c=sqlite3.connect(DB); c.row_factory=sqlite3.Row; return c
