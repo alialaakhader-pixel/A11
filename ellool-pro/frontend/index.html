@@ -764,7 +764,7 @@ initAuth().catch(e=>toast('تعذر تهيئة شاشة الدخول: '+e.messag
 </script>
 
 <script type="module">
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.119.2';
 
 const SUPABASE_URL = 'https://vmwfwyyrqbtwthakwqft.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable__2XQ2mNTv9UbIX8on0OpvA_zYn_ygtw';
@@ -795,7 +795,7 @@ async function signUp(){
   if(!email||password.length<8){status('أدخل بريدًا صحيحًا وكلمة مرور من 8 أحرف على الأقل.',true);return}
   const btn=byId('cloudSignup');btn.disabled=true;
   try{
-    const {data,error}=await cloud.auth.signUp({email,password});
+    const {data,error}=await cloud.auth.signUp({email,password,options:{emailRedirectTo:'https://ellool-ai-studio.vercel.app'}});
     if(error)throw error;
     if(data.session){setCloudState(data.user);status('تم إنشاء الحساب وتسجيل الدخول.')}
     else status('تم إرسال رسالة تأكيد إلى بريدك. أكّد البريد ثم سجّل الدخول.');
