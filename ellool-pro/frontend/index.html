@@ -321,6 +321,7 @@ async function unlock(pass){
     S.salt=unb64(o.salt);S.key=await deriveKey(pass,S.salt);
     S.v=JSON.parse(dec.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(o.iv)},S.key,unb64(o.ct))));
     const d=newVault();S.v={...d,...S.v,server:{...d.server,...(S.v.server||{})}};
+    if(S.v.engine==='local'&&!navigator.gpu){S.v.engine='server';if(!S.v.server.url||S.v.server.url.includes('localhost'))S.v.server.url='/api';if(!S.v.server.model||S.v.server.model==='qwen2.5:7b')S.v.server.model='gemini-2.5-flash-lite';}
     delete S.v.geminiKey;delete S.v.models;
     // Remove the old fast SHA-256 verifier; AES-GCM authentication is the verifier.
     localStorage.removeItem('ellool_gate');
