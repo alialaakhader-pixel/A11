@@ -507,7 +507,7 @@ function decorate(el,c){
 }
 const policyText=()=>{const p=S.v.policy||{};return `\n\nإعدادات أسلوب المستخدم (ضمن حدود الأمان الأساسية): مستوى الانفتاح ${p.openness??55}/100. الإبداع: ${p.allowCreative?'مسموح':'غير مطلوب'}. كتابة الكود: ${p.allowCode?'مسموحة':'غير مطلوبة'}. الأدوار الخيالية الآمنة: ${p.allowRoleplay?'مسموحة':'غير مطلوبة'}. الربطات الخارجية: ${p.allowWeb?'يمكن اقتراحها مع طلب موافقة صريحة':'لا تستخدم ربطاً خارجياً'}. قواعد مسموحة إضافية: ${p.customAllow||'لا يوجد'}. قيود إضافية: ${p.customDeny||'لا يوجد'}. لا تتجاوز قواعد الأمان أو القوانين أو تعليمات مزود النموذج.`};
 const sysFor=()=>S.v.system+policyText()+'\n\nالربطات المتاحة: '+(S.v.connectors.map(c=>c.name).join('، ')||'لا يوجد')+MODES[$('#mode').value];
-async function send(){
+async async function send(){
   if(S.locked)return lockedSend();
   if(S.busy)return;
   const t=$('#chatIn').value.trim();if(!t)return;
