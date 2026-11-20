@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import Optional
 import httpx
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Request, Response
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
@@ -188,6 +189,47 @@ async def call_model(messages,temperature):
         r=await client.post(url,json={'model':os.getenv('OPENAI_MODEL','local-model'),'messages':messages,'temperature':temperature},headers=headers)
         if r.status_code>=400: raise HTTPException(502,'تعذر الاتصال بمزود النموذج')
         return r.json()['choices'][0]['message']['content']
+
+
+@app.post('/v1/chat/completions')
+async def openai_compatible_chat(request:Request):
+    """Self-hosted OpenAI-compatible endpoint backed only by the local Ollama instance."""
+    expected=os.getenv('ELLOOL_API_KEY','')
+    supplied=(request.headers.get('authorization') or '').removeprefix('Bearer ').strip()
+    if len(expected)<24 or not hmac.compare_digest(supplied,expected):
+        raise HTTPException(401,'مفتاح الوصول للول غير صحيح أو غير مضبوط على الخادم.')
+    try:
+        body=await request.json()
+    except Exception:
+        raise HTTPException(400,'صيغة الطلب غير صالحة.')
+    messages=body.get('messages') if isinstance(body,dict) else None
+    if not isinstance(messages,list) or not messages or len(messages)>40:
+        raise HTTPException(400,'المحادثة فارغة أو تجاوزت الحد المسموح.')
+    clean=[]
+    for item in messages:
+        if not isinstance(item,dict) or item.get('role') not in ('system','user','assistant'):
+            continue
+        content=item.get('content')
+        if isinstance(content,str) and content.strip():
+            clean.append({'role':item['role'],'content':content[:12000]})
+    if not clean:
+        raise HTTPException(400,'لا توجد رسائل نصية صالحة.')
+    if not any(m['role']=='system' for m in clean):
+        try:
+            prompt=(Path(__file__).parent/'master_prompt.md').read_text(encoding='utf-8')
+        except OSError:
+            prompt='أنت اللول، مساعد عربي دقيق وصريح. لا تختلق قدرات أو مصادر.'
+        clean.insert(0,{'role':'system','content':prompt})
+    temperature=max(0.0,min(1.2,float(body.get('temperature',0.7) or 0.7)))
+    answer=await call_model(clean,temperature)
+    if not isinstance(answer,str) or not answer.strip():
+        raise HTTPException(502,'محرك اللول المحلي لم يرجع إجابة.')
+    async def events():
+        chunk={'id':'ellool-local','object':'chat.completion.chunk','choices':[{'index':0,'delta':{'content':answer},'finish_reason':None}]}
+        yield 'data: '+json.dumps(chunk,ensure_ascii=False)+'\\n\\n'
+        yield 'data: [DONE]\\n\\n'
+    return StreamingResponse(events(),media_type='text/event-stream',headers={'Cache-Control':'no-cache, no-transform','X-Accel-Buffering':'no'})
+
 
 @app.post('/api/chat')
 async def chat(data:ChatIn,user=Depends(current_user)):
