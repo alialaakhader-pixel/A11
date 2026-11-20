@@ -185,7 +185,7 @@ body.locked #chatIn{-webkit-text-security:disc}
       <div class="max-w-3xl mx-auto w-full space-y-4">
         <div class="card space-y-3">
           <h3 class="font-bold">🧠 عقل اللول</h3>
-          <p class="text-xs text-slate-400">المحرك الأساسي يعمل محلياً على جهازك باستخدام نموذج مفتوح المصدر؛ رسائلك لا تُرسل إلى Gemini أو ChatGPT. يحتاج WebGPU وذاكرة مناسبة، ويتم تنزيل أوزان النموذج عند أول تشغيل. ويمكنك اختيار خادم Ollama خاص تملكه إذا جهزت خادماً بنفسك.</p>
+          <p class="text-xs text-slate-400">المحرك الأساسي يعمل محلياً على جهازك باستخدام نموذج مفتوح المصدر؛ لا تُرسل رسائلك إلى أي خدمة محادثة خارجية. يحتاج WebGPU وذاكرة مناسبة، ويتم تنزيل أوزان النموذج عند أول تشغيل. ويمكنك اختيار خادم Ollama خاص تملكه إذا جهزت خادماً بنفسك.</p>
           <div><label class="lbl">المحرك</label><select id="sEngine" class="inp"><option value="local">عقل اللول المحلي على هذا الجهاز</option><option value="server">خادم Ollama خاص أملكه</option></select></div>
           <div><label class="lbl">النموذج المحلي</label><input id="mLocal" list="mList" class="inp text-left" dir="ltr">
             <datalist id="mList"><option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC"><option value="Qwen2.5-3B-Instruct-q4f16_1-MLC"><option value="Qwen2.5-7B-Instruct-q4f16_1-MLC"><option value="Qwen2.5-Coder-7B-Instruct-q4f16_1-MLC"><option value="Llama-3.2-3B-Instruct-q4f16_1-MLC"></datalist>
@@ -193,8 +193,8 @@ body.locked #chatIn{-webkit-text-security:disc}
           <button id="prepBtn" class="btn2">⬇️ جهّز العقل الآن</button>
           <div class="grid sm:grid-cols-3 gap-2 border-t border-slate-800 pt-3">
             <div class="sm:col-span-3 text-xs text-slate-400">إعدادات اختيارية للاتصال بخادم النموذج المحلي الذي تستضيفه بنفسك (Ollama أو خادم متوافق). لا تضع مفاتيح خدمات ذكاء اصطناعي خارجية هنا:</div>
-            <div><label class="lbl">العنوان</label><input id="svUrl" class="inp text-left" dir="ltr" placeholder="http://localhost:11434/v1"></div>
-            <div><label class="lbl">اسم النموذج</label><input id="svModel" class="inp text-left" dir="ltr" placeholder="qwen2.5:7b"></div>
+            <div><label class="lbl">العنوان</label><input id="svUrl" class="inp text-left" dir="ltr" placeholder="https://your-own-server.example/v1"></div>
+            <div><label class="lbl">اسم النموذج</label><input id="svModel" class="inp text-left" dir="ltr" placeholder="qwen2.5:3b"></div>
             <div><label class="lbl">مفتاح (اختياري)</label><input id="svKey" type="password" class="inp text-left" dir="ltr"></div>
           </div>
           <div><label class="lbl">خادم الصور الخاص (Stable Diffusion WebUI) اختياري</label><input id="imgSrv" class="inp text-left" dir="ltr" placeholder="http://localhost:7860"></div>
@@ -303,7 +303,7 @@ const setStatus=t=>{$('#brainStatus').textContent=t||''};
 const explainEngineAvailability=()=>{if(S.v?.engine==='local'&&!navigator.gpu)setStatus('هذا الجهاز لا يدعم WebGPU؛ جرّب متصفحاً وجهازاً يدعمان WebGPU أو شغّل خادم Ollama تملكه. لا يوجد تحويل تلقائي لخدمة ذكاء اصطناعي خارجية.');};
 
 const S={key:null,salt:null,v:null,cur:null,gallery:[],busy:false,locked:true,tmp:[],ctl:null};
-const newVault=()=>({engine:'local',localModel:'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',server:{url:'http://127.0.0.1:11434/v1',model:'qwen2.5:7b',key:''},imgServer:'',system:PERSONA,connectors:[],keys:[],chats:[],lock:15,policy:{openness:55,allowCreative:true,allowCode:true,allowRoleplay:true,allowWeb:false,customAllow:'',customDeny:''}});
+const newVault=()=>({engine:'local',localModel:'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',server:{url:'https://YOUR-OWN-SERVER/v1',model:'qwen2.5:3b',key:''},imgServer:'',system:PERSONA,connectors:[],keys:[],chats:[],lock:15,policy:{openness:55,allowCreative:true,allowCode:true,allowRoleplay:true,allowWeb:false,customAllow:'',customDeny:''}});
 
 /* ---------- الخزنة المشفرة ---------- */
 async function saveVault(){
