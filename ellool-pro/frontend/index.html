@@ -321,7 +321,7 @@ async function unlock(pass){
     S.salt=unb64(o.salt);S.key=await deriveKey(pass,S.salt);
     S.v=JSON.parse(dec.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(o.iv)},S.key,unb64(o.ct))));
     const d=newVault();S.v={...d,...S.v,server:{...d.server,...(S.v.server||{})}};if((S.v.engineChoiceVersion||0)<2){if(S.v.engine==='local')S.v.engine='cloudflare';S.v.engineChoiceVersion=2;}if(S.v.engine==='local'&&S.v.server?.url==='https://YOUR-OWN-SERVER/v1'){S.v.engine='cloudflare';S.v.server={...d.server,...S.v.server};}
-    if(S.v.engine==='server'&&(S.v.server?.url==='/api'||/gemini/i.test(S.v.server?.model||''))){S.v.engine='local';S.v.localModel=S.v.localModel||'Qwen2.5-1.5B-Instruct-q4f16_1-MLC';}
+    if(S.v.engine==='server'&&(S.v.server?.url==='/api'||/gemini/i.test(S.v.server?.model||''))){S.v.engine='cloudflare';S.v.server={...d.server,...(S.v.server?.url==='/api'?{}:S.v.server)};}
     delete S.v.geminiKey;delete S.v.models;
     // Remove the old fast SHA-256 verifier; AES-GCM authentication is the verifier.
     localStorage.removeItem('ellool_gate');
