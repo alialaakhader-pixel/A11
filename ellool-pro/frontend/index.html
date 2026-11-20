@@ -185,14 +185,14 @@ body.locked #chatIn{-webkit-text-security:disc}
       <div class="max-w-3xl mx-auto w-full space-y-4">
         <div class="card space-y-3">
           <h3 class="font-bold">🧠 عقل اللول</h3>
-          <p class="text-xs text-slate-400">المحرك السحابي يستخدم Gemini عبر خادم آمن على Vercel. يتطلب ضبط GEMINI_API_KEY في إعدادات المشروع، ويمكن استخدام مستوى مجاني محدود حسب حصص Google. لا تضع المفتاح في هذه الصفحة. ويمكنك اختيار محرك محلي بديل يتطلب WebGPU.</p>
-          <div><label class="lbl">المحرك</label><select id="sEngine" class="inp"><option value="local">محلي داخل المتصفح (بدون مفتاح)</option><option value="server">خادم خاص بيك (Ollama / vLLM / LM Studio)</option></select></div>
+          <p class="text-xs text-slate-400">المحرك الأساسي يعمل محلياً على جهازك باستخدام نموذج مفتوح المصدر؛ رسائلك لا تُرسل إلى Gemini أو ChatGPT. يحتاج WebGPU وذاكرة مناسبة، ويتم تنزيل أوزان النموذج عند أول تشغيل. ويمكنك اختيار خادم Ollama خاص تملكه إذا جهزت خادماً بنفسك.</p>
+          <div><label class="lbl">المحرك</label><select id="sEngine" class="inp"><option value="local">عقل اللول المحلي على هذا الجهاز</option><option value="server">خادم Ollama خاص أملكه</option></select></div>
           <div><label class="lbl">النموذج المحلي</label><input id="mLocal" list="mList" class="inp text-left" dir="ltr">
             <datalist id="mList"><option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC"><option value="Qwen2.5-3B-Instruct-q4f16_1-MLC"><option value="Qwen2.5-7B-Instruct-q4f16_1-MLC"><option value="Qwen2.5-Coder-7B-Instruct-q4f16_1-MLC"><option value="Llama-3.2-3B-Instruct-q4f16_1-MLC"></datalist>
             <p class="text-[11px] text-slate-500 mt-1">1.5B أخف وأسرع، 7B أذكى وأحسن في الكود والعربي لكنه أثقل.</p></div>
           <button id="prepBtn" class="btn2">⬇️ جهّز العقل الآن</button>
           <div class="grid sm:grid-cols-3 gap-2 border-t border-slate-800 pt-3">
-            <div class="sm:col-span-3 text-xs text-slate-400">خادم Gemini السحابي أو خادمك الخاص المتوافق مع OpenAI. المفتاح السحابي يُضبط بأمان في Vercel ولا يُكتب هنا:</div>
+            <div class="sm:col-span-3 text-xs text-slate-400">إعدادات اختيارية للاتصال بخادم النموذج المحلي الذي تستضيفه بنفسك (Ollama أو خادم متوافق). لا تضع مفاتيح خدمات ذكاء اصطناعي خارجية هنا:</div>
             <div><label class="lbl">العنوان</label><input id="svUrl" class="inp text-left" dir="ltr" placeholder="http://localhost:11434/v1"></div>
             <div><label class="lbl">اسم النموذج</label><input id="svModel" class="inp text-left" dir="ltr" placeholder="qwen2.5:7b"></div>
             <div><label class="lbl">مفتاح (اختياري)</label><input id="svKey" type="password" class="inp text-left" dir="ltr"></div>
@@ -300,10 +300,10 @@ function openModal(title,html){$('#mTitle').textContent=title;$('#mBody').innerH
 $('#mClose').onclick=()=>{$('#modal').classList.replace('flex','hidden');$('#mBody').innerHTML=''};
 function dl(url,name){const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove()}
 const setStatus=t=>{$('#brainStatus').textContent=t||''};
-const explainEngineAvailability=()=>{if(S.v?.engine==='local'&&!navigator.gpu)setStatus('المحادثة تحتاج WebGPU؛ افتح Chrome محدّثًا أو اربط خادمًا من الإعدادات.');};
+const explainEngineAvailability=()=>{if(S.v?.engine==='local'&&!navigator.gpu)setStatus('هذا الجهاز لا يدعم WebGPU؛ جرّب متصفحاً وجهازاً يدعمان WebGPU أو شغّل خادم Ollama تملكه. لا يوجد تحويل تلقائي لخدمة ذكاء اصطناعي خارجية.');};
 
 const S={key:null,salt:null,v:null,cur:null,gallery:[],busy:false,locked:true,tmp:[],ctl:null};
-const newVault=()=>({engine:'server',localModel:'Qwen2.5-3B-Instruct-q4f16_1-MLC',server:{url:'/api',model:'gemini-2.5-flash-lite',key:''},imgServer:'',system:PERSONA,connectors:[],keys:[],chats:[],lock:15,policy:{openness:55,allowCreative:true,allowCode:true,allowRoleplay:true,allowWeb:false,customAllow:'',customDeny:''}});
+const newVault=()=>({engine:'local',localModel:'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',server:{url:'http://127.0.0.1:11434/v1',model:'qwen2.5:7b',key:''},imgServer:'',system:PERSONA,connectors:[],keys:[],chats:[],lock:15,policy:{openness:55,allowCreative:true,allowCode:true,allowRoleplay:true,allowWeb:false,customAllow:'',customDeny:''}});
 
 /* ---------- الخزنة المشفرة ---------- */
 async function saveVault(){
@@ -321,7 +321,7 @@ async function unlock(pass){
     S.salt=unb64(o.salt);S.key=await deriveKey(pass,S.salt);
     S.v=JSON.parse(dec.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(o.iv)},S.key,unb64(o.ct))));
     const d=newVault();S.v={...d,...S.v,server:{...d.server,...(S.v.server||{})}};
-    if(S.v.engine==='local'&&!navigator.gpu){S.v.engine='server';if(!S.v.server.url||S.v.server.url.includes('localhost'))S.v.server.url='/api';if(!S.v.server.model||S.v.server.model==='qwen2.5:7b')S.v.server.model='gemini-2.5-flash-lite';}
+    if(S.v.engine==='server'&&(S.v.server?.url==='/api'||/gemini/i.test(S.v.server?.model||''))){S.v.engine='local';S.v.localModel=S.v.localModel||'Qwen2.5-1.5B-Instruct-q4f16_1-MLC';}
     delete S.v.geminiKey;delete S.v.models;
     // Remove the old fast SHA-256 verifier; AES-GCM authentication is the verifier.
     localStorage.removeItem('ellool_gate');
