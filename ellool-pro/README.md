@@ -2,14 +2,15 @@
 
 The complete browser application is in `frontend/index.html`. It is a local-first app: its encrypted vault, conversations, connector credentials, and settings stay in the current browser profile. It is not a multi-user account service and does not sync data between devices.
 
-## Deploy the static app on Vercel (free static hosting)
+## Deployment
 
-1. In Vercel, create a **separate project** connected to `alialaakhader-pixel/A11`.
-2. Set **Root Directory** to `ellool-pro/frontend`.
-3. Framework: Vite; Build command: `npm run build`; Output directory: `dist`.
-4. Deploy. The existing root website and its Vercel project are intentionally not replaced by this folder.
+A separate Vercel project is deployed from `ellool-pro/frontend`:
 
-A `vercel.json` is included for when the Vercel project root is set to `ellool-pro/frontend`.
+- Live: https://ellool-ai-studio.vercel.app
+- Root Directory: `ellool-pro/frontend`
+- Framework: Vite; Build command: `npm run build`; Output directory: `dist`
+
+The existing root website and its original Vercel project were intentionally left unchanged. A `vercel.json` is included for the separate frontend project.
 
 ## Run locally
 
