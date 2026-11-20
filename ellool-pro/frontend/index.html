@@ -293,7 +293,6 @@ function b64(buf){const a=new Uint8Array(buf);let s='';for(let i=0;i<a.length;i+
 const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 const b64u=b=>b64(b).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const shaRaw=async s=>b64(await crypto.subtle.digest('SHA-256',enc.encode(s)));
-const shaPass=p=>shaRaw('ellool::'+p);
 async function deriveKey(pass,salt){const base=await crypto.subtle.importKey('raw',enc.encode(pass),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:200000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt'])}
 function toast(m,bad){const t=$('#toast');t.textContent=m;t.className='fixed bottom-5 left-1/2 -translate-x-1/2 z-[95] px-4 py-2 rounded-xl text-xs border '+(bad?'bg-rose-900/80 border-rose-700':'bg-slate-800 border-slate-700');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.add('hidden'),3500)}
 function openModal(title,html){$('#mTitle').textContent=title;$('#mBody').innerHTML=html;$('#modal').classList.replace('hidden','flex')}
@@ -703,7 +702,7 @@ $('#sReset').onclick=()=>{$('#sSys').value=PERSONA;toast('اضغط حفظ للت
 $('#passSave').onclick=async()=>{
   const p=$('#newPass').value;
   if(p){if(p.length<10)return toast('كلمة السر لازم 10 أحرف على الأقل',1);
-    S.salt=crypto.getRandomValues(new Uint8Array(16));S.key=await deriveKey(p,S.salt);localStorage.setItem('ellool_gate',await shaPass(p));$('#newPass').value=''}
+    S.salt=crypto.getRandomValues(new Uint8Array(16));S.key=await deriveKey(p,S.salt);localStorage.removeItem('ellool_gate');$('#newPass').value=''}
   S.v.lock=Math.max(1,+$('#sLock').value||15);await saveVault();startIdle();toast('اتحدّث الأمان');
 };
 $('#wipeBtn').onclick=()=>{if(confirm('هتمسح كل المحادثات والربطات والإعدادات نهائياً. متأكد؟')){localStorage.removeItem('ellool_vault');localStorage.removeItem('ellool_gate');location.reload()}};
@@ -727,7 +726,6 @@ renderMsgs();
 
 async function initAuth(){
   const hasVault=!!localStorage.getItem('ellool_vault');
-  const hasVerifier=!!localStorage.getItem('ellool_gate');
   const hint=$('#authHint'),confirmWrap=$('#authConfirmWrap'),submit=$('#authSubmit'),pass=$('#authPass');
   if(!hasVault){
     // Do not silently reuse the old hard-coded password on a fresh install.
@@ -736,11 +734,11 @@ async function initAuth(){
     submit.textContent='إنشاء الخزنة وبدء الاستخدام';
     pass.autocomplete='new-password';
   }else{
-    hint.textContent=hasVerifier?'أدخل كلمة السر لفتح خزنتك المشفّرة':'هذه خزنة قديمة لا تحتوي على تحقق آمن. لا يمكن فتحها بهذه النسخة؛ صدّر بياناتك من النسخة القديمة إن كانت متاحة، ثم ابدأ بخزنة جديدة.';
+    hint.textContent='أدخل كلمة السر لفك تشفير خزنتك. يتم التحقق بمحاولة فك التشفير نفسها.';
     confirmWrap.classList.add('hidden');
+    submit.disabled=false;pass.disabled=false;
     submit.textContent='فتح اللول';
     pass.autocomplete='current-password';
-    if(!hasVerifier){submit.disabled=true;pass.disabled=true;}
   }
   $('#authForm').addEventListener('submit',async e=>{
     e.preventDefault();
