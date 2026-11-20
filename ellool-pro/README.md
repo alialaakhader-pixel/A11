@@ -1,36 +1,43 @@
-# ELLOOL Pro (source workspace)
+# ELLOOL AI — Local-first creative AI studio
 
-This folder contains a separate React + FastAPI implementation. It does not replace the currently deployed root-level app.
+The complete browser application is in `frontend/index.html`. It is a local-first app: its encrypted vault, conversations, connector credentials, and settings stay in the current browser profile. It is not a multi-user account service and does not sync data between devices.
 
-## Local development
+## Deploy the static app on Vercel (free static hosting)
 
-Backend:
-```bash
-cd backend
-python -m venv .venv
-# activate the environment for your OS
-pip install -r requirements.txt
-cp .env.example .env
-# Set APP_SECRET to a random value of at least 32 characters.
-# Set BOOTSTRAP_ADMIN_PASSWORD to a unique long password.
-uvicorn app.main:app --reload --port 8000
-```
+1. In Vercel, create a **separate project** connected to `alialaakhader-pixel/A11`.
+2. Set **Root Directory** to `ellool-pro/frontend`.
+3. Framework: Vite; Build command: `npm run build`; Output directory: `dist`.
+4. Deploy. The existing root website and its Vercel project are intentionally not replaced by this folder.
 
-Frontend (second terminal):
+A `vercel.json` is included for when the Vercel project root is set to `ellool-pro/frontend`.
+
+## Run locally
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-## Important deployment limits
+## What works in this version
 
-- The backend currently uses SQLite on local disk. This is suitable for local development only; serverless filesystems are not durable or shared between instances.
-- The configured Ollama and OpenAI-compatible URLs default to loopback addresses. A cloud-hosted backend cannot reach a model running on the user's computer through 127.0.0.1.
-- The Vite proxy only works during local development. Production needs a reachable backend URL and a matching API base/proxy configuration.
-- Uploaded knowledge files and conversation records are local to the backend process and are not cloud-synced.
-- Image generation, image editing, video editing, and seed-library loading are not included in this trimmed initial source scaffold yet.
-- Do not deploy this backend to production until persistent storage, bootstrap-admin provisioning, request rate limits, CSRF strategy, upload scanning/quotas, and production CORS/cookie settings have been configured and tested.
-- No secrets belong in Git. Copy .env.example to .env locally and never commit .env.
+- Encrypted local vault using PBKDF2 + AES-GCM, with a user-created password.
+- Local chat using WebLLM in browsers that support WebGPU and have enough memory, or a user-configured OpenAI-compatible endpoint.
+- SVG illustration generation, with optional Stable Diffusion WebUI integration for image generation and img2img.
+- Local browser video filters/export and storyboard-style animated video output. This is **not** photorealistic text-to-video generation.
+- User-approved API connector calls and local API-key management.
+- Exportable code blocks, chat history, settings, and a lock timer.
 
-The root app and its existing Vercel deployment are intentionally left unchanged.
+## Important limitations
+
+- The app is local-first: each browser/device has its own encrypted data. Clearing browser data can remove the vault; export important content regularly.
+- The local WebGPU model downloads to the device and needs a compatible browser and sufficient RAM/GPU. It may not work on every phone/tablet.
+- A remote chat endpoint must be reachable over HTTPS and allow the browser's origin through CORS. Do not put production secrets into a public browser app.
+- Stable Diffusion must be hosted separately and reachable by the browser; localhost only refers to the device running the browser.
+- Video editing is browser-side WebM processing; it does not provide generative video AI or guaranteed audio preservation.
+- No free unlimited cloud inference or photorealistic image/video generation is included. Those require a reachable model/service and may have limits or costs.
+- The previous embedded legacy password (`ali2009`) was a public hard-coded bypass and has been removed. Existing old vaults that lack a per-vault verifier cannot be opened by this secure version. Export anything important from the old local copy before switching.
+
+## Backend folder
+
+`backend/` is an experimental API scaffold only. It is **not connected** to the static browser app and is not production-ready. It still uses local SQLite and needs persistent storage, hardened authentication, rate limiting, deployment configuration, and full tests before it should be deployed. Do not deploy it to Vercel serverless as-is.
