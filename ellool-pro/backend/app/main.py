@@ -231,7 +231,7 @@ async def openai_compatible_chat(request:Request):
         raise HTTPException(502,'محرك اللول المحلي لم يرجع إجابة.')
     async def events():
         chunk={'id':'ellool-local','object':'chat.completion.chunk','choices':[{'index':0,'delta':{'content':answer},'finish_reason':None}]}
-        yield 'data: '+json.dumps(chunk,ensure_ascii=False)+'\\n\\n'
+        yield 'data: '+json.dumps(chunk,ensure_ascii=False)+'\n\n'
         yield 'data: [DONE]\\n\\n'
     return StreamingResponse(events(),media_type='text/event-stream',headers={'Cache-Control':'no-cache, no-transform','X-Accel-Buffering':'no'})
 
