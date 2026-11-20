@@ -185,14 +185,14 @@ body.locked #chatIn{-webkit-text-security:disc}
       <div class="max-w-3xl mx-auto w-full space-y-4">
         <div class="card space-y-3">
           <h3 class="font-bold">🧠 عقل اللول</h3>
-          <p class="text-xs text-slate-400">المحرك المحلي يحمّل نموذجاً مفتوحاً داخل المتصفح، وقد يكون أبطأ أو أقل قدرة من النماذج السحابية. يحتاج متصفحاً يدعم WebGPU وذاكرة مناسبة. للحصول على أداء أقوى استخدم خادماً خاصاً متوافقاً مع OpenAI API.</p>
+          <p class="text-xs text-slate-400">المحرك السحابي يستخدم Gemini عبر خادم آمن على Vercel. يتطلب ضبط GEMINI_API_KEY في إعدادات المشروع، ويمكن استخدام مستوى مجاني محدود حسب حصص Google. لا تضع المفتاح في هذه الصفحة. ويمكنك اختيار محرك محلي بديل يتطلب WebGPU.</p>
           <div><label class="lbl">المحرك</label><select id="sEngine" class="inp"><option value="local">محلي داخل المتصفح (بدون مفتاح)</option><option value="server">خادم خاص بيك (Ollama / vLLM / LM Studio)</option></select></div>
           <div><label class="lbl">النموذج المحلي</label><input id="mLocal" list="mList" class="inp text-left" dir="ltr">
             <datalist id="mList"><option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC"><option value="Qwen2.5-3B-Instruct-q4f16_1-MLC"><option value="Qwen2.5-7B-Instruct-q4f16_1-MLC"><option value="Qwen2.5-Coder-7B-Instruct-q4f16_1-MLC"><option value="Llama-3.2-3B-Instruct-q4f16_1-MLC"></datalist>
             <p class="text-[11px] text-slate-500 mt-1">1.5B أخف وأسرع، 7B أذكى وأحسن في الكود والعربي لكنه أثقل.</p></div>
           <button id="prepBtn" class="btn2">⬇️ جهّز العقل الآن</button>
           <div class="grid sm:grid-cols-3 gap-2 border-t border-slate-800 pt-3">
-            <div class="sm:col-span-3 text-xs text-slate-400">خادمك الخاص (متوافق مع OpenAI) لو اخترت "خادم خاص":</div>
+            <div class="sm:col-span-3 text-xs text-slate-400">خادم Gemini السحابي أو خادمك الخاص المتوافق مع OpenAI. المفتاح السحابي يُضبط بأمان في Vercel ولا يُكتب هنا:</div>
             <div><label class="lbl">العنوان</label><input id="svUrl" class="inp text-left" dir="ltr" placeholder="http://localhost:11434/v1"></div>
             <div><label class="lbl">اسم النموذج</label><input id="svModel" class="inp text-left" dir="ltr" placeholder="qwen2.5:7b"></div>
             <div><label class="lbl">مفتاح (اختياري)</label><input id="svKey" type="password" class="inp text-left" dir="ltr"></div>
@@ -303,7 +303,7 @@ const setStatus=t=>{$('#brainStatus').textContent=t||''};
 const explainEngineAvailability=()=>{if(S.v?.engine==='local'&&!navigator.gpu)setStatus('المحادثة تحتاج WebGPU؛ افتح Chrome محدّثًا أو اربط خادمًا من الإعدادات.');};
 
 const S={key:null,salt:null,v:null,cur:null,gallery:[],busy:false,locked:true,tmp:[],ctl:null};
-const newVault=()=>({engine:'local',localModel:'Qwen2.5-3B-Instruct-q4f16_1-MLC',server:{url:'http://localhost:11434/v1',model:'qwen2.5:7b',key:''},imgServer:'',system:PERSONA,connectors:[],keys:[],chats:[],lock:15,policy:{openness:55,allowCreative:true,allowCode:true,allowRoleplay:true,allowWeb:false,customAllow:'',customDeny:''}});
+const newVault=()=>({engine:'server',localModel:'Qwen2.5-3B-Instruct-q4f16_1-MLC',server:{url:'/api',model:'gemini-2.5-flash-lite',key:''},imgServer:'',system:PERSONA,connectors:[],keys:[],chats:[],lock:15,policy:{openness:55,allowCreative:true,allowCode:true,allowRoleplay:true,allowWeb:false,customAllow:'',customDeny:''}});
 
 /* ---------- الخزنة المشفرة ---------- */
 async function saveVault(){
@@ -356,7 +356,7 @@ async function ensureLocal(){
 async function serverChat(messages,onTok,signal,max){
   const sv=S.v.server,base=sv.url.replace(/\/+$/,'');
   const r=await fetch(base+'/chat/completions',{method:'POST',signal,headers:{'Content-Type':'application/json',...(sv.key?{Authorization:'Bearer '+sv.key}:{})},body:JSON.stringify({model:sv.model,messages,stream:true,max_tokens:max})});
-  if(!r.ok)throw new Error('الخادم الخاص رد بخطأ '+r.status);
+  if(!r.ok){let detail='';try{detail=(await r.json()).error?.message||''}catch{}throw new Error(detail||('الخادم رد بخطأ '+r.status));}
   const rd=r.body.getReader(),dc=new TextDecoder();let buf='',out='';
   for(;;){
     const {done,value}=await rd.read();if(done)break;
