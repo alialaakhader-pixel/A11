@@ -1,6 +1,6 @@
 # ELLOOL AI — local-first AI studio
 
-The frontend defaults to an on-device open-weight model through WebLLM/WebGPU. Chat inference runs in the browser on the user's device; the frontend does not send chat prompts to Gemini, ChatGPT, or another hosted AI API.
+The frontend defaults to an open-weight model through the ELLOOL Cloudflare Workers AI gateway deployed in the owner's Cloudflare account. The app also retains an on-device WebLLM/WebGPU option and an optional owner-operated Ollama server. No Gemini/OpenAI hosted chat API fallback is used.
 
 ## Live frontend
 
@@ -10,6 +10,17 @@ The frontend defaults to an on-device open-weight model through WebLLM/WebGPU. C
 - Output: `dist`
 
 Vercel hosts only the static web application. It does not host the model weights or run GPU inference.
+
+## Default cloud brain (Cloudflare Workers AI)
+
+- Worker: `ellool-ai-brain`
+- Endpoint: `https://ellool-ai-brain.ellool-ai.workers.dev/v1`
+- Model: `@cf/meta/llama-3.3-70b-instruct-fp8-fast`
+- Source: `cloudflare/worker.js`
+- The Worker is deployed in the connected Cloudflare account and uses the Workers AI binding; it does not store conversation text.
+- The Cloudflare Workers AI Free allocation is 10,000 Neurons per day. Requests stop when the free daily allowance or service limits are reached; no paid upgrade is configured.
+- The Worker restricts browser origins to the ELLOOL production domains, applies a best-effort per-IP rate limit, caps request size and output tokens, and returns OpenAI-compatible SSE chunks.
+- Cloudflare's Free allocation is a quota, not unlimited hosting. The local WebGPU model remains available as an alternative, and a self-hosted Ollama backend remains optional.
 
 ## Local inference
 
