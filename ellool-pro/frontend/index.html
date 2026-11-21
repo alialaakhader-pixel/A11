@@ -185,12 +185,12 @@ body.locked #chatIn{-webkit-text-security:disc}
       <div class="max-w-3xl mx-auto w-full space-y-4">
         <div class="card space-y-3">
           <h3 class="font-bold">🧠 عقل اللول</h3>
-          <p class="text-xs text-slate-400">المحرك الافتراضي يستخدم نموذجاً مفتوح المصدر عبر Workers AI المرتبط بحساب Cloudflare؛ الحصة المجانية 10,000 Neurons يومياً وقد تتوقف الطلبات عند نفادها. بوابة اللول لا تحفظ نص المحادثات. ويمكنك اختيار التشغيل المحلي عبر WebGPU أو خادم Ollama خاص تملكه.</p>
-          <div><label class="lbl">المحرك</label><select id="sEngine" class="inp"><option value="cloudflare">عقل اللول السحابي المجاني (Cloudflare AI)</option><option value="local">عقل اللول المحلي على هذا الجهاز</option><option value="server">خادم Ollama خاص أملكه</option></select></div>
-          <div><label class="lbl">النموذج المحلي</label><input id="mLocal" list="mList" class="inp text-left" dir="ltr">
+          <p class="text-xs text-slate-400">يعمل اللول عبر محركه السحابي مباشرة. لا يتم تنزيل نماذج ذكاء اصطناعي على جهازك، ولا يحتاج إلى WebGPU أو تحميل ملفات ضخمة. قد تتوقف الطلبات مؤقتاً عند استهلاك الحصة المجانية اليومية.</p>
+          <div><label class="lbl">المحرك النشط</label><div class="inp text-emerald-300">عقل اللول السحابي — بدون تنزيل نماذج</div><select id="sEngine" class="hidden"><option value="cloudflare" selected>Cloudflare AI</option></select></div>
+          <div class="hidden"><label class="lbl">النموذج المحلي</label><input id="mLocal" list="mList" class="inp text-left" dir="ltr">
             <datalist id="mList"><option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC"><option value="Qwen2.5-3B-Instruct-q4f16_1-MLC"><option value="Qwen2.5-7B-Instruct-q4f16_1-MLC"><option value="Qwen2.5-Coder-7B-Instruct-q4f16_1-MLC"><option value="Llama-3.2-3B-Instruct-q4f16_1-MLC"></datalist>
             <p class="text-[11px] text-slate-500 mt-1">1.5B أخف وأسرع، 7B أذكى وأحسن في الكود والعربي لكنه أثقل.</p></div>
-          <button id="prepBtn" class="btn2">⬇️ جهّز العقل الآن</button>
+          <button id="prepBtn" class="hidden" type="button" disabled>تحميل محلي معطل</button>
           <div class="grid sm:grid-cols-3 gap-2 border-t border-slate-800 pt-3">
             <div class="sm:col-span-3 text-xs text-slate-400">إعدادات الاتصال بمحرك اللول السحابي أو خادم Ollama خاص تملكه. لا تضع مفاتيح خدمات ذكاء اصطناعي خارجية هنا:</div>
             <div><label class="lbl">العنوان</label><input id="svUrl" class="inp text-left" dir="ltr" placeholder="https://your-own-server.example/v1"></div>
@@ -303,7 +303,7 @@ const setStatus=t=>{$('#brainStatus').textContent=t||''};
 const explainEngineAvailability=()=>{if(S.v?.engine==='local'&&!navigator.gpu)setStatus('هذا الجهاز لا يدعم WebGPU؛ جرّب متصفحاً وجهازاً يدعمان WebGPU أو شغّل خادم Ollama تملكه. لا يوجد تحويل تلقائي لخدمة ذكاء اصطناعي خارجية.');};
 
 const S={key:null,salt:null,v:null,cur:null,gallery:[],busy:false,locked:true,tmp:[],ctl:null};
-const newVault=()=>({engineChoiceVersion:3,engine:'cloudflare',localModel:'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',server:{url:'https://ellool-ai-brain.ellool-ai.workers.dev/v1',model:'@cf/meta/llama-3.3-70b-instruct-fp8-fast',key:''},imgServer:'',system:PERSONA,connectors:[],keys:[],chats:[],lock:15,policy:{openness:55,allowCreative:true,allowCode:true,allowRoleplay:true,allowWeb:false,customAllow:'',customDeny:''}});
+const newVault=()=>({engineChoiceVersion:4,engine:'cloudflare',localModel:'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',server:{url:'https://ellool-ai-brain.ellool-ai.workers.dev/v1',model:'@cf/meta/llama-3.3-70b-instruct-fp8-fast',key:''},imgServer:'',system:PERSONA,connectors:[],keys:[],chats:[],lock:15,policy:{openness:55,allowCreative:true,allowCode:true,allowRoleplay:true,allowWeb:false,customAllow:'',customDeny:''}});
 
 /* ---------- الخزنة المشفرة ---------- */
 async function saveVault(){
@@ -320,11 +320,14 @@ async function unlock(pass){
     const o=JSON.parse(raw);
     S.salt=unb64(o.salt);S.key=await deriveKey(pass,S.salt);
     S.v=JSON.parse(dec.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(o.iv)},S.key,unb64(o.ct))));
-    const d=newVault();S.v={...d,...S.v,server:{...d.server,...(S.v.server||{})}};if((S.v.engineChoiceVersion||0)<3){if(S.v.engine==='local')S.v.engine='cloudflare';S.v.engineChoiceVersion=3;}if(S.v.engine==='local'&&S.v.server?.url==='https://YOUR-OWN-SERVER/v1'){S.v.engine='cloudflare';S.v.server={...d.server,...S.v.server};}
-    if(S.v.engine==='server'&&(S.v.server?.url==='/api'||/gemini/i.test(S.v.server?.model||''))){S.v.engine='cloudflare';S.v.server={...d.server,...(S.v.server?.url==='/api'?{}:S.v.server)};}
+    const d=newVault();S.v={...d,...S.v,server:{...d.server,...(S.v.server||{})}};
+    // Cloud-only mode: never initialize or download a WebGPU model on this device.
+    S.v.engine='cloudflare';S.v.engineChoiceVersion=4;
+    if(!/^https:\/\/ellool-ai-brain\.ellool-ai\.workers\.dev\/v1\/?$/i.test(S.v.server?.url||'')){S.v.server={...d.server};}
+    S.v.server.model='@cf/meta/llama-3.3-70b-instruct-fp8-fast';
     delete S.v.geminiKey;delete S.v.models;
-    // Remove the old fast SHA-256 verifier; AES-GCM authentication is the verifier.
     localStorage.removeItem('ellool_gate');
+    await saveVault();
     return true;
   }catch{return false}
 }
@@ -716,11 +719,11 @@ function fillSettings(){
   const v=S.v;$('#sEngine').value=v.engine;$('#mLocal').value=v.localModel;$('#svUrl').value=v.server.url;$('#svModel').value=v.server.model;$('#svKey').value=v.server.key||'';$('#imgSrv').value=v.imgServer||'';$('#sSys').value=v.system;$('#sLock').value=v.lock;
 }
 $('#sSave').onclick=async()=>{
-  const v=S.v;v.engine=$('#sEngine').value;v.localModel=$('#mLocal').value.trim()||v.localModel;
+  const v=S.v;v.engine='cloudflare';v.engineChoiceVersion=4;
   v.server={url:$('#svUrl').value.trim(),model:$('#svModel').value.trim(),key:$('#svKey').value};v.imgServer=$('#imgSrv').value.trim();
   v.system=$('#sSys').value;v.lock=Math.max(1,+$('#sLock').value||15);await saveVault();toast('اتحفظ');startIdle();
 };
-$('#prepBtn').onclick=async()=>{
+$('#prepBtn').onclick=async()=>{return; /* local model downloads are disabled */
   S.v.localModel=$('#mLocal').value.trim()||S.v.localModel;await saveVault();
   const b=$('#prepBtn');b.disabled=true;
   try{await ensureLocal();toast('النموذج المحلي جاهز. اختاره من قائمة المحرك لو عايز تستخدمه.')}catch(e){toast(e.message,1);setStatus('')}
