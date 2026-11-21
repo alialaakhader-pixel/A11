@@ -407,7 +407,7 @@ async function genImage(prompt,aspect='1:1',engine='flux',sourceData=null){
   if(engine==='flux'){
     if(sourceData)throw new Error('توليد FLUX الحالي ينشئ صورة من الوصف فقط ولا يعدّل صورة مرفوعة. اختر خادم Stable Diffusion خاصاً يدعم img2img للتعديل.');
     const base=(S.v.server?.url||'https://ellool-ai-brain.ellool-ai.workers.dev/v1').replace(/\/+$/,'').replace(/\/v1$/,'');
-    const r=await fetch(base+'/v1/images/generations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,steps:4})});
+    const r=await fetch(base+'/v1/images/generations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,steps:4,width:w,height:h})});
     let d={};try{d=await r.json()}catch{}
     if(!r.ok)throw new Error(d.error?.message||('خدمة الصور ردت بخطأ '+r.status));
     if(!d.image)throw new Error('خدمة الصور لم تُرجع صورة.');
