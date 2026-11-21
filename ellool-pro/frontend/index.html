@@ -378,10 +378,18 @@ async function serverChat(messages,onTok,signal,max){
 function brainChat(messages,onTok,max=2048){
   return queued(async()=>{
     if(S.v.engine==='server'||S.v.engine==='cloudflare'){S.ctl=new AbortController();return serverChat(messages,onTok,S.ctl.signal,max)}
-    const eng=await ensureLocal();let out='';
-    const st=await eng.chat.completions.create({messages,stream:true,temperature:.7,max_tokens:max});
-    for await(const ch of st){const t=ch.choices[0]?.delta?.content||'';if(t){out+=t;onTok&&onTok(out)}}
-    return out;
+    try{
+      const eng=await ensureLocal();let out='';
+      const st=await eng.chat.completions.create({messages,stream:true,temperature:.7,max_tokens:max});
+      for await(const ch of st){const t=ch.choices[0]?.delta?.content||'';if(t){out+=t;onTok&&onTok(out)}}
+      return out;
+    }catch(localError){
+      if(S.v.engine!=='local')throw localError;
+      S.v.engine='cloudflare';persist();
+      setStatus('المحرك المحلي غير متاح على هذا الجهاز؛ تم التحويل تلقائياً إلى عقل اللول السحابي.');
+      S.ctl=new AbortController();
+      return serverChat(messages,onTok,S.ctl.signal,max);
+    }
   });
 }
 const ask=(sys,user,max)=>brainChat([{role:'system',content:sys+(typeof policyText==='function'?policyText():'')},{role:'user',content:user}],null,max);
