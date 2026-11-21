@@ -540,8 +540,8 @@ const COGNITIVE_CORE=[
 'عند عدم فهم جزء من الطلب، لا تتظاهر بالفهم. حدّد الجزء الغامض فقط. وعند اكتشاف خطأ في إجابتك، صحّحه بوضوح دون دفاع أو تبرير زائد.',
 'لا توافق المستخدم لمجرد إرضائه؛ صحّح المعلومة بلطف مع توضيح السبب. لا تعد بنتيجة مستحيلة ولا تصف نفسك بذكاء خارق أو استقلال غير حقيقي.',
 'قبل إرسال الرد، راجع أنه يجيب عن المطلوب كله، ويتبع السياق، ولا يحتوي تناقضاً أو ادعاءً غير متحقق.'
-].join('\\n');
-const sysFor=()=>S.v.system+COGNITIVE_CORE+policyText()+'\\n\\nالربطات المتاحة: '+(S.v.connectors.map(c=>c.name).join('، ')||'لا يوجد')+MODES[$('#mode').value];
+].join('\n');
+const sysFor=()=>S.v.system+COGNITIVE_CORE+policyText()+'\n\nالربطات المتاحة: '+(S.v.connectors.map(c=>c.name).join('، ')||'لا يوجد')+MODES[$('#mode').value];
 async function send(){
   if(S.locked)return lockedSend();
   if(S.busy)return;
