@@ -490,6 +490,7 @@ function renderMsgs(){
     }else{
       const waiting=S.busy&&i===c.messages.length-1&&!m.text;
       d.innerHTML=`<div class="bg-slate-900 border border-slate-800 rounded-2xl rounded-tr-none p-4 text-sm max-w-[92%] min-w-0 md"><div class="body">${waiting?DOTS:md(m.text)}</div></div>`;
+      if(m.imagePreview){const im=document.createElement('img');im.src=m.imagePreview;im.alt='الصورة التي أنشأها اللول';im.loading='lazy';im.className='mt-3 max-w-full rounded-xl border border-slate-700';im.style.maxHeight='520px';d.querySelector('.bg-slate-900').appendChild(im)}
       if(!waiting){decorate(d.querySelector('.body'),c);const actions=document.createElement('div');actions.className='flex flex-wrap gap-2 mt-3 pt-2 border-t border-slate-700/70 text-[11px] text-slate-400';actions.innerHTML='<button data-act="copy" class="hover:text-white">نسخ</button><button data-act="retry" class="hover:text-white">إعادة الرد</button><button data-act="good" class="hover:text-emerald-300">مفيد</button><button data-act="bad" class="hover:text-rose-300">غير مفيد</button>';actions.querySelector('[data-act="copy"]').onclick=()=>{navigator.clipboard?.writeText(m.text).then(()=>toast('اتنسخ الرد')).catch(()=>toast('تعذر النسخ',1))};actions.querySelector('[data-act="retry"]').onclick=()=>{if(S.busy)return; c.messages.splice(i);persist();reply(c)};actions.querySelector('[data-act="good"]').onclick=()=>toast('شكراً على تقييمك');actions.querySelector('[data-act="bad"]').onclick=()=>toast('وصل تقييمك');d.querySelector('.bg-slate-900').appendChild(actions)}
     }
     box.appendChild(d);
@@ -542,6 +543,30 @@ const COGNITIVE_CORE=[
 'قبل إرسال الرد، راجع أنه يجيب عن المطلوب كله، ويتبع السياق، ولا يحتوي تناقضاً أو ادعاءً غير متحقق.'
 ].join('\n');
 const sysFor=()=>S.v.system+COGNITIVE_CORE+policyText()+'\n\nالربطات المتاحة: '+(S.v.connectors.map(c=>c.name).join('، ')||'لا يوجد')+MODES[$('#mode').value];
+function isDirectImageRequest(t){
+  const x=String(t||'').trim().toLowerCase();
+  if(/^(ازاي|كيف|ليه|لماذا|ما هو|ماهي|اشرح|علمني|علّمني)/.test(x))return false;
+  return /(?:اعمل|اعملي|اصنع|اصنعي|صمم|صممي|ارسم|ارسملي|ارسمى|ولد|ولّد|انشئ|أنشئ|اعمللي|اعملى|جهزلي|جهز|create|generate|draw|design|make)\\s*(?:لي|ل[ي]?|a|an|me)?\\s*(?:صورة|صوره|تصميم|بوستر|لوجو|شعار|رسمة|رسمه|خلفية|خلفيه|غلاف|thumbnail|image|picture|poster|logo|illustration|wallpaper|cover)/i.test(x)
+    || /(?:صورة|صوره|بوستر|لوجو|شعار|رسمة|خلفية|غلاف|image|picture|poster|logo|wallpaper)\\s*(?:عن|لـ|ل|بـ|of|about)\\s*/i.test(x)&&/(?:عايز|عاوز|محتاج|ممكن|please|want|need|make|create)/i.test(x);
+}
+async function createImageFromChat(c,userText){
+  S.busy=true;$('#stopBtn').classList.remove('hidden');
+  const m={role:'model',text:'فهمت طلب الصورة. بحوّل وصفك لتعليمات بصرية دقيقة، وبعدها ببدأ التوليد…'};c.messages.push(m);renderMsgs();
+  try{
+    const visualBrief=await ask(
+      'You are ELLOOL visual prompt director. Convert the user request into ONE precise, richly visual English prompt for FLUX.2 Klein image generation. Understand Arabic Egyptian dialect and preserve every requested subject, action, setting, mood, style, composition, colors and aspect intent. Do not add unrelated objects. If exact Arabic text is requested inside the image, include that exact text verbatim and instruct clear readable Arabic lettering; otherwise request no text. Specify coherent lighting, camera/framing, depth and high-quality details. Output only the final prompt, no quotes or explanation.',
+      userText,260
+    );
+    const prompt=(visualBrief||userText).trim();
+    setStatus('اللول بيولّد الصورة…');
+    const r=await genImage(prompt,'1:1','flux');
+    S.gallery.unshift({...r,prompt:userText});
+    Object.defineProperty(m,'imagePreview',{value:r.url,enumerable:false,configurable:true});
+    m.text='اتفضل، فهمت وصفك وحوّلته لصورة. هتلاقيها كمان محفوظة في استوديو الصور.';
+    renderGallery();
+  }catch(e){m.text='فهمت إنك عايز صورة، لكن التوليد ماكملش: '+e.message}
+  S.busy=false;$('#stopBtn').classList.add('hidden');setStatus('');renderMsgs();persist();
+}
 async function send(){
   if(S.locked)return lockedSend();
   if(S.busy)return;
@@ -549,6 +574,7 @@ async function send(){
   const c=curChat();c.messages.push({role:'user',text:t});
   if(c.messages.length===1){c.title=t.slice(0,28);renderChats()}
   $('#chatIn').value='';
+  if(isDirectImageRequest(t)){await createImageFromChat(c,t);return}
   await reply(c);
 }
 async function reply(c){
@@ -639,7 +665,7 @@ $('#scBtn').onclick=async()=>{
   const b=$('#scBtn'),st=$('#scStatus');b.disabled=true;$('#scDl').classList.add('hidden');
   try{
     st.textContent='اللول بيكتب المشاهد...';
-    const raw=await ask(`You write short video scene lists. Output exactly ${n} lines. Each line: an ENGLISH visual description of one scene | a short Arabic caption. No numbering, no extra text.`,'Topic: '+topic,500);
+    const raw=await ask(`You are a professional film director and storyboard artist. Understand the user's Arabic/Egyptian description exactly. Create exactly ${n} sequential cinematic shots for ONE coherent video. Every shot must advance the same story, preserve the same characters, face, age, clothing, objects, location and visual style across all scenes, and avoid introducing unrelated elements. Describe in ENGLISH: subject identity and consistent appearance, visible action, environment, camera framing/lens/movement, lighting, atmosphere, composition and transition-friendly ending. Make each shot visually distinct but continuity-safe. Output exactly ${n} lines, each formatted: detailed English visual prompt | concise Arabic caption. No numbering, no headings, no extra text, no markdown.`,'User video idea (preserve its meaning): '+topic,Math.min(1000,n*180));
     let scenes=raw.split('\n').map(l=>l.replace(/^[\d\-\.\)\s*]+/,'').trim()).filter(l=>l.includes('|')).slice(0,n).map(l=>{const [p,...c]=l.split('|');return{prompt:p.trim(),caption:c.join('|').trim()}});
     if(!scenes.length)scenes=topic.split('\n').filter(Boolean).slice(0,n).map(l=>({prompt:l,caption:l}));
     const imgs=[];
