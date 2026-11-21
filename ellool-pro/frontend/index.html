@@ -546,8 +546,8 @@ const sysFor=()=>S.v.system+COGNITIVE_CORE+policyText()+'\n\nالربطات ال
 function isDirectImageRequest(t){
   const x=String(t||'').trim().toLowerCase();
   if(/^(ازاي|كيف|ليه|لماذا|ما هو|ماهي|اشرح|علمني|علّمني)/.test(x))return false;
-  return /(?:اعمل|اعملي|اصنع|اصنعي|صمم|صممي|ارسم|ارسملي|ارسمى|ولد|ولّد|انشئ|أنشئ|اعمللي|اعملى|جهزلي|جهز|create|generate|draw|design|make)\\s*(?:لي|ل[ي]?|a|an|me)?\\s*(?:صورة|صوره|تصميم|بوستر|لوجو|شعار|رسمة|رسمه|خلفية|خلفيه|غلاف|thumbnail|image|picture|poster|logo|illustration|wallpaper|cover)/i.test(x)
-    || /(?:صورة|صوره|بوستر|لوجو|شعار|رسمة|خلفية|غلاف|image|picture|poster|logo|wallpaper)\\s*(?:عن|لـ|ل|بـ|of|about)\\s*/i.test(x)&&/(?:عايز|عاوز|محتاج|ممكن|please|want|need|make|create)/i.test(x);
+  return /(?:اعمل|اعملي|اصنع|اصنعي|صمم|صممي|ارسم|ارسملي|ارسمى|ولد|ولّد|انشئ|أنشئ|اعمللي|اعملى|جهزلي|جهز|create|generate|draw|design|make)\s*(?:لي|ل[ي]?|a|an|me)?\s*(?:صورة|صوره|تصميم|بوستر|لوجو|شعار|رسمة|رسمه|خلفية|خلفيه|غلاف|thumbnail|image|picture|poster|logo|illustration|wallpaper|cover)/i.test(x)
+    || /(?:صورة|صوره|بوستر|لوجو|شعار|رسمة|خلفية|غلاف|image|picture|poster|logo|wallpaper)\s*(?:عن|لـ|ل|بـ|of|about)\s*/i.test(x)&&/(?:عايز|عاوز|محتاج|ممكن|please|want|need|make|create)/i.test(x);
 }
 async function createImageFromChat(c,userText){
   S.busy=true;$('#stopBtn').classList.remove('hidden');
@@ -559,7 +559,8 @@ async function createImageFromChat(c,userText){
     );
     const prompt=(visualBrief||userText).trim();
     setStatus('اللول بيولّد الصورة…');
-    const r=await genImage(prompt,'1:1','flux');
+    const aspect=/(?:ريلز|reels|تيك.?توك|tiktok|ستوري|story|عمودي|طولي|9:16)/i.test(userText)?'9:16':/(?:يوتيوب|youtube|بانر|banner|غلاف قناة|thumbnail|16:9|عرضي)/i.test(userText)?'16:9':'1:1';
+    const r=await genImage(prompt,aspect,'flux');
     S.gallery.unshift({...r,prompt:userText});
     Object.defineProperty(m,'imagePreview',{value:r.url,enumerable:false,configurable:true});
     m.text='اتفضل، فهمت وصفك وحوّلته لصورة. هتلاقيها كمان محفوظة في استوديو الصور.';
@@ -668,11 +669,14 @@ $('#scBtn').onclick=async()=>{
     const raw=await ask(`You are a professional film director and storyboard artist. Understand the user's Arabic/Egyptian description exactly. Create exactly ${n} sequential cinematic shots for ONE coherent video. Every shot must advance the same story, preserve the same characters, face, age, clothing, objects, location and visual style across all scenes, and avoid introducing unrelated elements. Describe in ENGLISH: subject identity and consistent appearance, visible action, environment, camera framing/lens/movement, lighting, atmosphere, composition and transition-friendly ending. Make each shot visually distinct but continuity-safe. Output exactly ${n} lines, each formatted: detailed English visual prompt | concise Arabic caption. No numbering, no headings, no extra text, no markdown.`,'User video idea (preserve its meaning): '+topic,Math.min(1000,n*180));
     let scenes=raw.split('\n').map(l=>l.replace(/^[\d\-\.\)\s*]+/,'').trim()).filter(l=>l.includes('|')).slice(0,n).map(l=>{const [p,...c]=l.split('|');return{prompt:p.trim(),caption:c.join('|').trim()}});
     if(!scenes.length)scenes=topic.split('\n').filter(Boolean).slice(0,n).map(l=>({prompt:l,caption:l}));
-    const imgs=[];
-    for(let i=0;i<scenes.length;i++){
-      st.textContent=`اللول بيرسم مشهد ${i+1} من ${scenes.length}...`;
-      const r=await genImage(scenes[i].prompt+', cinematic wide scene','16:9',$('#imgEngine').value);
-      imgs.push(await loadImg(r.url));
+    const imgs=new Array(scenes.length);
+    for(let start=0;start<scenes.length;start+=2){
+      const end=Math.min(start+2,scenes.length);
+      st.textContent=`اللول بيرسم المشاهد ${start+1}–${end} من ${scenes.length}...`;
+      await Promise.all(scenes.slice(start,end).map(async(scene,j)=>{
+        const r=await genImage(scene.prompt+', cinematic wide scene, consistent film color grading','16:9','flux');
+        imgs[start+j]=await loadImg(r.url);
+      }));
     }
     await document.fonts.load('bold 40px Cairo');
     const W=1280,H=720,cv=document.createElement('canvas');cv.width=W;cv.height=H;const ctx=cv.getContext('2d');
