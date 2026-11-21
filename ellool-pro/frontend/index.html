@@ -836,9 +836,12 @@ async function initAuth(){
     pass.autocomplete='current-password';
     pass.minLength=0;
   }
-  $('#authForm').addEventListener('submit',async e=>{
-    e.preventDefault();
-    const p=pass.value,err=$('#authError');err.classList.add('hidden');submit.disabled=true;
+  let authRunning=false;
+  const runAuth=async()=>{
+    if(authRunning)return;
+    authRunning=true;
+    const p=pass.value,err=$('#authError');
+    err.classList.add('hidden');submit.disabled=true;submit.textContent='جاري فتح الخزنة…';
     try{
       if(!localStorage.getItem('ellool_vault')){
         if(p.length<10)throw new Error('استخدم كلمة سر من 10 أحرف على الأقل.');
@@ -846,14 +849,22 @@ async function initAuth(){
         await createFirstVault(p);
       }else{
         const ok=await unlock(p);
-        if(!ok)throw new Error('كلمة السر غير صحيحة أو تعذر فك تشفير الخزنة.');
+        if(!ok)throw new Error('تعذر فك تشفير الخزنة. تأكد من كلمة السر وافتح الموقع على نفس المتصفح والجهاز اللذين أنشأت عليهما الخزنة.');
       }
       S.locked=false;document.body.classList.remove('locked');
       $('#authScreen').classList.add('hidden');
       boot();toast('أهلاً بك في اللول ✅');
-    }catch(ex){err.textContent=ex.message||'تعذر فتح الخزنة';err.classList.remove('hidden')}
-    finally{submit.disabled=false}
-  });
+    }catch(ex){
+      err.textContent=ex?.message||'تعذر فتح الخزنة';
+      err.classList.remove('hidden');
+      console.error('ELLOOL vault login failed:',ex);
+    }finally{
+      authRunning=false;submit.disabled=false;submit.textContent=localStorage.getItem('ellool_vault')?'فتح اللول':'إنشاء الخزنة وبدء الاستخدام';
+    }
+  };
+  // Handle both a direct tap and keyboard form submission.
+  submit.addEventListener('click',e=>{e.preventDefault();runAuth()});
+  $('#authForm').addEventListener('submit',e=>{e.preventDefault();runAuth()});
   pass.focus();
 }
 initAuth().catch(e=>toast('تعذر تهيئة شاشة الدخول: '+e.message,1));
