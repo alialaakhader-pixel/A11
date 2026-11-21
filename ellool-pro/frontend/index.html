@@ -821,17 +821,20 @@ async function initAuth(){
   const hasVault=!!localStorage.getItem('ellool_vault');
   const hint=$('#authHint'),confirmWrap=$('#authConfirmWrap'),submit=$('#authSubmit'),pass=$('#authPass');
   if(!hasVault){
-    // Do not silently reuse the old hard-coded password on a fresh install.
+    // New vaults require a strong password; existing vaults must accept
+    // their original password even if it predates the 10-character rule.
     hint.textContent='أول استخدام: أنشئ كلمة سر قوية لحماية بياناتك';
     confirmWrap.classList.remove('hidden');
     submit.textContent='إنشاء الخزنة وبدء الاستخدام';
     pass.autocomplete='new-password';
+    pass.minLength=10;
   }else{
-    hint.textContent='أدخل كلمة السر لفك تشفير خزنتك. يتم التحقق بمحاولة فك التشفير نفسها.';
+    hint.textContent='أدخل كلمة السر القديمة نفسها لفك تشفير خزنتك.';
     confirmWrap.classList.add('hidden');
     submit.disabled=false;pass.disabled=false;
     submit.textContent='فتح اللول';
     pass.autocomplete='current-password';
+    pass.minLength=0;
   }
   $('#authForm').addEventListener('submit',async e=>{
     e.preventDefault();
