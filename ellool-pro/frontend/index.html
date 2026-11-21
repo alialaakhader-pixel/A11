@@ -323,20 +323,25 @@ let saveT;function persist(){clearTimeout(saveT);saveT=setTimeout(()=>saveVault(
 async function unlock(pass){
   const raw=localStorage.getItem('ellool_vault');
   if(!raw)return false;
+  // Only a malformed vault or failed authenticated decryption means bad credentials.
+  // Optional migrations/sync must never turn a valid password into a login failure.
+  let decoded;
   try{
     const o=JSON.parse(raw);
+    if(!o?.salt||!o?.iv||!o?.ct)return false;
     S.salt=unb64(o.salt);S.key=await deriveKey(pass,S.salt);
-    S.v=JSON.parse(dec.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(o.iv)},S.key,unb64(o.ct))));
-    const d=newVault();S.v={...d,...S.v,server:{...d.server,...(S.v.server||{})}};
-    // Cloud-only mode: never initialize or download a WebGPU model on this device.
-    S.v.engine='cloudflare';S.v.engineChoiceVersion=4;
-    if(!/^https:\/\/ellool-ai-brain\.ellool-ai\.workers\.dev\/v1\/?$/i.test(S.v.server?.url||'')){S.v.server={...d.server};}
-    S.v.server.model='@cf/meta/llama-3.3-70b-instruct-fp8-fast';
-    delete S.v.geminiKey;delete S.v.models;
-    localStorage.removeItem('ellool_gate');
-    await saveVault();
-    return true;
+    decoded=JSON.parse(dec.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(o.iv)},S.key,unb64(o.ct))));
+    if(!decoded||typeof decoded!=='object')return false;
   }catch{return false}
+  const d=newVault();S.v={...d,...decoded,server:{...d.server,...(decoded.server||{})},policy:{...d.policy,...(decoded.policy||{})}};
+  // Cloud-only mode: never initialize or download a WebGPU model on this device.
+  S.v.engine='cloudflare';S.v.engineChoiceVersion=4;
+  if(!/^https:\/\/ellool-ai-brain\.ellool-ai\.workers\.dev\/v1\/?$/i.test(S.v.server?.url||'')){S.v.server={...d.server};}
+  S.v.server.model='@cf/meta/llama-3.3-70b-instruct-fp8-fast';
+  delete S.v.geminiKey;delete S.v.models;
+  localStorage.removeItem('ellool_gate');
+  try{await saveVault()}catch(e){console.warn('Vault migration save deferred; login remains available.',e)}
+  return true;
 }
 async function createFirstVault(pass){
   if(localStorage.getItem('ellool_vault'))throw new Error('الخزنة موجودة بالفعل؛ استخدم تسجيل الدخول.');
