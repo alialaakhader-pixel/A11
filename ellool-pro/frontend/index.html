@@ -109,7 +109,7 @@ body.locked #chatIn{-webkit-text-security:disc}
             <div><label class="lbl">المحرك</label><select id="imgEngine" class="inp"><option value="flux">توليد صور حقيقية بالذكاء الاصطناعي (FLUX)</option><option value="svg">رسم SVG (للرسوم والشعارات)</option><option value="sd">خادم صور خاص (Stable Diffusion)</option></select></div>
           </div>
           <div><label class="lbl">الأسلوب</label><select id="imgStyle" class="inp"><option value="">بدون</option><option>flat vector illustration, bold shapes, clean</option><option>minimal modern logo, geometric, two or three colors</option><option>isometric illustration, soft gradients</option><option>neon cyberpunk poster, glowing gradients</option><option>cinematic poster with layered silhouettes and gradient sky</option><option>infographic style, icons and clear hierarchy</option></select></div>
-          <button id="genImgBtn" class="btn w-full">إنشاء / تعديل الصورة</button><p class="text-[11px] text-slate-500">محرك FLUX يولّد صوراً حقيقية من الوصف. تعديل الصورة المرفوعة يحتاج خادم صور خاصاً يدعم img2img؛ لا يتم إرسال الصورة إلى FLUX.</p>
+          <button id="genImgBtn" class="btn w-full">إنشاء / تعديل الصورة</button><p class="text-[11px] text-slate-500">محرك FLUX.2 Klein يولّد صوراً حقيقية ويدعم استخدام الصورة المرفوعة كمرجع لإنشاء تعديل جديد.</p>
           <p id="imgStatus" class="text-xs text-slate-400"></p>
         </div>
         <div class="lg:col-span-2"><div id="gallery" class="grid sm:grid-cols-2 gap-3"></div></div>
@@ -413,9 +413,9 @@ function svgToPng(svg,w,h){return new Promise((res,rej)=>{const i=new Image();i.
 async function genImage(prompt,aspect='1:1',engine='flux',sourceData=null){
   const [w,h]=ASP[aspect]||ASP['1:1'];
   if(engine==='flux'){
-    if(sourceData)throw new Error('توليد FLUX الحالي ينشئ صورة من الوصف فقط ولا يعدّل صورة مرفوعة. اختر خادم Stable Diffusion خاصاً يدعم img2img للتعديل.');
+    
     const base=(S.v.server?.url||'https://ellool-ai-brain.ellool-ai.workers.dev/v1').replace(/\/+$/,'').replace(/\/v1$/,'');
-    const r=await fetch(base+'/v1/images/generations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,steps:4,width:w,height:h})});
+    const r=await fetch(base+'/v1/images/generations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     let d={};try{d=await r.json()}catch{}
     if(!r.ok)throw new Error(d.error?.message||('خدمة الصور ردت بخطأ '+r.status));
     if(!d.image)throw new Error('خدمة الصور لم تُرجع صورة.');
