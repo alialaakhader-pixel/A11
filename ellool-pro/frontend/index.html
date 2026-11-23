@@ -612,27 +612,31 @@ function isDirectImageRequest(t){
   return /(?:اعمل|اعملي|اصنع|اصنعي|صمم|صممي|ارسم|ارسملي|ارسمى|ولد|ولّد|انشئ|أنشئ|اعمللي|اعملى|جهزلي|جهز|create|generate|draw|design|make)\s*(?:لي|ل[ي]?|a|an|me)?\s*(?:صورة|صوره|تصميم|بوستر|لوجو|شعار|رسمة|رسمه|خلفية|خلفيه|غلاف|thumbnail|image|picture|poster|logo|illustration|wallpaper|cover)/i.test(x)
     || /(?:صورة|صوره|بوستر|لوجو|شعار|رسمة|خلفية|غلاف|image|picture|poster|logo|wallpaper)\s*(?:عن|لـ|ل|بـ|of|about)\s*/i.test(x)&&/(?:عايز|عاوز|محتاج|ممكن|please|want|need|make|create)/i.test(x);
 }
+async function buildVisualPrompt(userText,style='',aspect='1:1',engine='flux'){
+  const brief=await ask(
+    'You are ELLOOL AI\'s expert Arabic-to-visual prompt director. The user may write Egyptian Arabic, colloquial Arabic, mixed Arabic/English, fragments, or detailed instructions. First understand the intended image, then convert it into ONE complete, precise English prompt for an image-generation model. Preserve the exact subject count, identities as described, actions, objects, setting, time, mood, camera angle, composition, colors, clothing, and every constraint. Do not omit details, contradict the user, invent extra people/objects, or turn a specific request into a generic image. Resolve ordinary spelling mistakes from context. Explicitly describe foreground, background, framing, lighting, materials, proportions, and visual hierarchy. If the user requests words inside the image, preserve the exact requested wording verbatim in a clearly marked quoted text instruction and specify where it appears; do not translate or rewrite it. If no text is requested, say no text, letters, logos, or watermark. Respect the selected style and aspect ratio. Return ONLY the final English image prompt, no preface, no analysis, no markdown.',
+    'USER REQUEST (Arabic or mixed):\n'+userText+'\nSELECTED STYLE: '+(style||'Choose a style that best matches the request')+'\nASPECT RATIO: '+aspect+'\nIMAGE ENGINE: '+engine+'\nMake the result specific to this exact request.',700
+  );
+  if(!brief||brief.trim().length<30)throw new Error('اللول مقدرش يحوّل وصفك لتعليمات واضحة. جرّب توضح العنصر الأساسي والمشهد.');
+  return brief.trim();
+}
 async function createImageFromChat(c,userText){
   S.busy=true;$('#stopBtn').classList.remove('hidden');
-  const engine=S.v.imageEngine||'local';
-  const m={role:'model',text:engine==='local'?'فهمت طلب الصورة. ببدأ التوليد على محرك ELLOOL المحلي…':'فهمت طلب الصورة. بحوّل وصفك لتعليمات بصرية دقيقة، وبعدها ببدأ التوليد…'};c.messages.push(m);renderMsgs();
+  const engine=S.v.imageEngine||'flux';
+  const m={role:'model',text:engine==='local'?'فهمت طلب الصورة. ببدأ التوليد على محرك ELLOOL المحلي…':'بحلّل وصفك الأول وبحوّله لتعليمات بصرية دقيقة…'};c.messages.push(m);renderMsgs();
   try{
     let prompt=userText;
-    if(engine!=='local'){
-      const visualBrief=await ask(
-        'You are ELLOOL visual prompt director. Convert the user request into ONE precise, richly visual English prompt for the selected image engine. Understand Arabic Egyptian dialect and preserve every requested subject, action, setting, mood, style, composition, colors and aspect intent. Do not add unrelated objects. If exact Arabic text is requested inside the image, include that exact text verbatim and instruct clear readable Arabic lettering; otherwise request no text. Specify coherent lighting, camera/framing, depth and high-quality details. Output only the final prompt, no quotes or explanation.',
-        userText,260
-      );
-      prompt=[(visualBrief||userText).trim(),'High-end professional image, intentional composition, clear focal subject, realistic anatomy and hands, coherent perspective, detailed materials, controlled lighting, clean background hierarchy, no random extra objects, no duplicated subjects, no malformed text.'].join('. ');
-    }
-    setStatus(engine==='local'?'اللول بيولّد الصورة محليًا…':'اللول بيولّد الصورة…');
     const aspect=/(?:ريلز|reels|تيك.?توك|tiktok|ستوري|story|عمودي|طولي|9:16)/i.test(userText)?'9:16':/(?:يوتيوب|youtube|بانر|banner|غلاف قناة|thumbnail|16:9|عرضي)/i.test(userText)?'16:9':'1:1';
+    if(engine!=='local'){
+      prompt=await buildVisualPrompt(userText,'',aspect,engine);
+      setStatus('اللول بيولّد الصورة…');
+    }
     const r=await genImage(prompt,aspect,engine);
     S.gallery.unshift({...r,prompt:userText});
     Object.defineProperty(m,'imagePreview',{value:r.url,enumerable:false,configurable:true});
-    m.text='اتفضل، فهمت وصفك وحوّلته لصورة. هتلاقيها كمان محفوظة في استوديو الصور.';
+    m.text='اتفضل، حولت وصفك للصورة. هتلاقيها كمان في استوديو الصور.';
     renderGallery();
-  }catch(e){m.text='فهمت إنك عايز صورة، لكن التوليد ماكملش: '+e.message}
+  }catch(e){m.text='مش قادر أنفذ الوصف بالشكل المطلوب: '+e.message}
   S.busy=false;$('#stopBtn').classList.add('hidden');setStatus('');renderMsgs();persist();
 }
 async function send(){
@@ -688,28 +692,33 @@ function renderGallery(){
   });
 }
 $('#enhBtn').onclick=async()=>{
-  const p=$('#imgPrompt').value.trim();if(!p)return;const b=$('#enhBtn');b.disabled=true;
+  const p=$('#imgPrompt').value.trim();if(!p){toast('اكتب وصف الصورة الأول');return}
+  const b=$('#enhBtn');b.disabled=true;const old=b.textContent;b.textContent='اللول بيفهم وصفك...';
   try{
-    const sd=['sd','local'].includes($('#imgEngine').value);
-    $('#imgPrompt').value=(await ask(sd?'Rewrite the idea as one professional Stable Diffusion prompt: subject, composition, style, lighting, lens, palette, quality tags. Output only the prompt.':'Rewrite the idea as a detailed illustration brief for an SVG artist: subject, composition (foreground / midground / background), color palette with hex codes, mood, lighting. Max 90 words, English. Output only the brief.',p,300)).trim();
-  }catch(e){toast(e.message,1)}
-  b.disabled=false;setStatus('');
+    const engine=$('#imgEngine').value||'flux',style=$('#imgStyle').value,aspect=$('#imgAspect').value;
+    const refined=await buildVisualPrompt(p,style,aspect,engine);
+    $('#imgPrompt').value=refined;
+    toast('تم فهم الوصف وتحويله لبرومبت احترافي');
+  }catch(e){toast('تعذر تحسين الوصف: '+e.message,1)}
+  b.disabled=false;b.textContent=old;setStatus('');
 };
 window.elloolImageData=null;
 $('#imgUpload').onchange=()=>{const f=$('#imgUpload').files?.[0];if(!f)return;if(f.size>12*1024*1024){toast('حجم الصورة الأقصى 12MB',1);return}const rd=new FileReader();rd.onload=()=>{window.elloolImageData=rd.result;$('#imgSourcePreview').src=rd.result;$('#imgSourcePreview').classList.remove('hidden');$('#clearImgSource').classList.remove('hidden')};rd.readAsDataURL(f)};
 $('#clearImgSource').onclick=()=>{window.elloolImageData=null;$('#imgUpload').value='';$('#imgSourcePreview').removeAttribute('src');$('#imgSourcePreview').classList.add('hidden');$('#clearImgSource').classList.add('hidden')};
 $('#imgEngine').onchange=()=>{S.v.imageEngine=$('#imgEngine').value;persist()};
 $('#genImgBtn').onclick=async()=>{
-  const p=$('#imgPrompt').value.trim();if(!p){$('#imgStatus').textContent='اكتب وصف الصورة الأول.';return;}if(!$('#imgEngine').value)$('#imgEngine').value='flux';const b=$('#genImgBtn');b.disabled=true;$('#imgStatus').textContent='اللول بيشتغل...';
+  const p=$('#imgPrompt').value.trim();if(!p){$('#imgStatus').textContent='اكتب وصف الصورة الأول.';return}
+  if(!$('#imgEngine').value)$('#imgEngine').value='flux';
+  const b=$('#genImgBtn');b.disabled=true;$('#imgStatus').textContent='اللول بيحلّل الوصف...';
   try{
-    const src=window.elloolImageData||null;
-    $('#imgStatus').textContent='اللول بيحسّن الوصف عشان يطلع تكوين أدق...';
-    let refined='';
-    if($('#imgEngine').value!=='local'){try{refined=await ask('You are an expert image prompt engineer. Rewrite the Arabic request as a precise English visual prompt for the selected image model. Preserve the subject, action, setting, colors, composition and requested text. Specify lighting, materials and visual hierarchy. Output only the prompt.',p+'\\nStyle: '+$('#imgStyle').value,300)}catch{}}
-    const full=[refined||p,$('#imgStyle').value].filter(Boolean).join(', ')+'. High quality, coherent perspective, clear focal point, professional lighting, no watermark.';
+    const src=window.elloolImageData||null,engine=$('#imgEngine').value,style=$('#imgStyle').value,aspect=$('#imgAspect').value;
+    let finalPrompt=p;
+    if(engine!=='local'&&engine!=='sd')finalPrompt=await buildVisualPrompt(p,style,aspect,engine);
+    else if(engine==='sd')finalPrompt=await buildVisualPrompt(p,style,aspect,engine);
+    if(engine==='local'&&/[\u0600-\u06FF]/.test(p))throw new Error('المحرك المحلي الحالي لا يترجم العربية تلقائيًا. اضغط «حسّن الوصف» أولاً أو استخدم FLUX السحابي.');
     $('#imgStatus').textContent='اللول بيولّد الصورة...';
-    const r=await genImage(full,$('#imgAspect').value,$('#imgEngine').value,src);
-    S.gallery.unshift({...r,prompt:full});renderGallery();$('#imgStatus').textContent='تم ✅';
+    const r=await genImage(finalPrompt,aspect,engine,src);
+    S.gallery.unshift({...r,prompt:p});renderGallery();$('#imgStatus').textContent='تم إنشاء الصورة بنجاح ✅';
   }catch(e){$('#imgStatus').textContent='⚠️ '+e.message}
   b.disabled=false;
 };
