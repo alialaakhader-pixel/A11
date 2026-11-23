@@ -115,7 +115,16 @@ body.locked #chatIn{-webkit-text-security:disc}
             <div><label class="lbl">الأبعاد</label><select id="imgAspect" class="inp"><option>1:1</option><option>16:9</option><option>9:16</option><option>4:3</option><option>3:4</option></select></div>
             <div><label class="lbl">المحرك</label><select id="imgEngine" class="inp"><option value="flux">FLUX السحابي — توليد صور حقيقية (افتراضي)</option><option value="svg">رسم SVG (للرسوم والشعارات)</option><option value="sd">خادم صور خاص (Stable Diffusion WebUI)</option><option value="local">محرك ELLOOL المحلي (يتطلب تشغيله على الكمبيوتر)</option></select></div>
           </div>
-          <div><label class="lbl">الأسلوب</label><select id="imgStyle" class="inp"><option value="">بدون</option><option>flat vector illustration, bold shapes, clean</option><option>minimal modern logo, geometric, two or three colors</option><option>isometric illustration, soft gradients</option><option>neon cyberpunk poster, glowing gradients</option><option>cinematic poster with layered silhouettes and gradient sky</option><option>infographic style, icons and clear hierarchy</option></select></div>
+          <div><label class="lbl">الأسلوب البصري</label><select id="imgStyle" class="inp"><option value="">اختيار تلقائي حسب الوصف</option><option value="photorealistic editorial photography, natural textures and realistic lighting">واقعي فوتوغرافي</option><option value="cinematic film still, dramatic composition, professional color grading">سينمائي</option><option value="premium 3D render, detailed materials, studio lighting">3D واقعي</option><option value="anime illustration, expressive linework, rich colors">أنمي</option><option value="watercolor illustration, textured paper, delicate pigments">ألوان مائية</option><option value="hand-drawn digital illustration, expressive brushwork">رسم رقمي</option><option value="flat vector illustration, bold shapes, clean geometry">Vector</option><option value="minimal modern logo, geometric, clean negative space">شعار Minimal</option><option value="luxury product photography, precise reflections, premium studio setup">تصوير منتجات فاخر</option><option value="fashion editorial photography, premium styling and lighting">تصوير أزياء</option><option value="architectural visualization, realistic materials and global illumination">تصميم معماري</option><option value="infographic illustration, clear hierarchy, clean icons and labels">إنفوجرافيك</option><option value="neon cyberpunk poster, luminous details and atmospheric haze">Cyberpunk</option><option value="vintage film photography, subtle grain and warm analog tones">Vintage</option></select></div>
+          <div><label class="lbl">توجيه فني إضافي (اختياري)</label><input id="imgCustomStyle" class="inp" placeholder="مثال: إضاءة ذهبية، خلفية زرقاء داكنة، عدسة 85mm..."></div>
+          <div><label class="lbl">حاجات عايز تتجنبها (اختياري)</label><textarea id="imgAvoid" rows="2" class="inp" placeholder="مثال: بدون زحمة، بدون عناصر إضافية، بدون كتابة..."></textarea></div>
+          <div class="rounded-xl border border-slate-700 bg-slate-950/60 p-3 space-y-2">
+            <div class="flex items-center justify-between"><label class="lbl !mb-0">حرية الإبداع</label><b id="imgCreativityValue" class="text-xs text-amber-300">6 / 10</b></div>
+            <input id="imgCreativity" class="w-full" type="range" min="1" max="10" value="6">
+            <div class="flex justify-between text-[10px] text-slate-500"><span>التزام أكبر بوصفك</span><span>حرية وابتكار أكثر</span></div>
+            <div class="grid grid-cols-2 gap-2"><div><label class="lbl">رقم ثابت للصورة (اختياري)</label><input id="imgSeed" type="number" min="0" max="2147483647" class="inp" placeholder="عشوائي كل مرة"></div><div><label class="lbl">نسبة الصورة</label><select id="imgAspect" class="inp"><option>1:1</option><option>16:9</option><option>9:16</option><option>4:3</option><option>3:4</option></select></div></div>
+            <p class="text-[10px] text-slate-500">استخدم نفس رقم الصورة لإعادة تجربة نتيجة قريبة. تغيير الوصف أو الإعدادات قد يغيّر النتيجة.</p>
+          </div>
           <button id="genImgBtn" class="btn w-full">إنشاء / تعديل الصورة</button><p class="text-[11px] text-slate-500">المحرك السحابي هو الاختيار الافتراضي ويعمل من الموقع مباشرة. المحرك المحلي يحتاج تشغيل ai_studio.py على الكمبيوتر.</p>
           <p id="imgStatus" class="text-xs text-slate-400"></p>
         </div>
@@ -457,7 +466,7 @@ async function localEngineJob(endpoint,payload,onStatus){
   }
   throw new Error('التوليد استغرق أكثر من 30 دقيقة. افحص نافذة تشغيل المحرك المحلي.');
 }
-async function genImage(prompt,aspect='1:1',engine='flux',sourceData=null){
+async function genImage(prompt,aspect='1:1',engine='flux',sourceData=null,options={}){
   const [w,h]=ASP[aspect]||ASP['1:1'];
   if(engine==='local'){
     if(sourceData)throw new Error('التعديل بصورة مرجعية غير متاح في الإصدار المحلي الأول. احذف الصورة واستخدم وصفًا نصيًا.');
@@ -468,7 +477,7 @@ async function genImage(prompt,aspect='1:1',engine='flux',sourceData=null){
     
     const base=(S.v.server?.url||'https://ellool-ai-brain.ellool-ai.workers.dev/v1').replace(/\/+$/,'').replace(/\/v1$/,'');
     let imageData=null;if(sourceData){imageData=await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>{const cv=document.createElement('canvas');const scale=Math.min(1,512/Math.max(img.naturalWidth,img.naturalHeight));cv.width=Math.max(1,Math.round(img.naturalWidth*scale));cv.height=Math.max(1,Math.round(img.naturalHeight*scale));cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);resolve(cv.toDataURL('image/jpeg',.86))};img.onerror=()=>reject(new Error('تعذر تجهيز الصورة المرجعية'));img.src=sourceData})}
-    const payload={prompt,width:w,height:h,...(imageData?{imageData}:{})};
+    const payload={prompt,width:w,height:h,guidance:Math.max(1,Math.min(10,Number(options.guidance)||4)),...(Number.isInteger(Number(options.seed))&&String(options.seed).trim()!==''?{seed:Math.max(0,Math.min(2147483647,Number(options.seed)))}:{}),...(imageData?{imageData}:{})};
     const r=await fetch(base+'/v1/images/generations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     let d={};try{d=await r.json()}catch{}
     if(!r.ok)throw new Error(d.error?.message||('خدمة الصور ردت بخطأ '+r.status));
@@ -612,10 +621,10 @@ function isDirectImageRequest(t){
   return /(?:اعمل|اعملي|اصنع|اصنعي|صمم|صممي|ارسم|ارسملي|ارسمى|ولد|ولّد|انشئ|أنشئ|اعمللي|اعملى|جهزلي|جهز|create|generate|draw|design|make)\s*(?:لي|ل[ي]?|a|an|me)?\s*(?:صورة|صوره|تصميم|بوستر|لوجو|شعار|رسمة|رسمه|خلفية|خلفيه|غلاف|thumbnail|image|picture|poster|logo|illustration|wallpaper|cover)/i.test(x)
     || /(?:صورة|صوره|بوستر|لوجو|شعار|رسمة|خلفية|غلاف|image|picture|poster|logo|wallpaper)\s*(?:عن|لـ|ل|بـ|of|about)\s*/i.test(x)&&/(?:عايز|عاوز|محتاج|ممكن|please|want|need|make|create)/i.test(x);
 }
-async function buildVisualPrompt(userText,style='',aspect='1:1',engine='flux'){
+async function buildVisualPrompt(userText,style='',aspect='1:1',engine='flux',avoid='',hasReference=false,creativity=6){
   const brief=await ask(
-    'You are ELLOOL AI\'s expert Arabic-to-visual prompt director. The user may write Egyptian Arabic, colloquial Arabic, mixed Arabic/English, fragments, or detailed instructions. First understand the intended image, then convert it into ONE complete, precise English prompt for an image-generation model. Preserve the exact subject count, identities as described, actions, objects, setting, time, mood, camera angle, composition, colors, clothing, and every constraint. Do not omit details, contradict the user, invent extra people/objects, or turn a specific request into a generic image. Resolve ordinary spelling mistakes from context. Explicitly describe foreground, background, framing, lighting, materials, proportions, and visual hierarchy. If the user requests words inside the image, preserve the exact requested wording verbatim in a clearly marked quoted text instruction and specify where it appears; do not translate or rewrite it. If no text is requested, say no text, letters, logos, or watermark. Respect the selected style and aspect ratio. Return ONLY the final English image prompt, no preface, no analysis, no markdown.',
-    'USER REQUEST (Arabic or mixed):\n'+userText+'\nSELECTED STYLE: '+(style||'Choose a style that best matches the request')+'\nASPECT RATIO: '+aspect+'\nIMAGE ENGINE: '+engine+'\nMake the result specific to this exact request.',700
+    'You are ELLOOL AI\'s expert Arabic/Egyptian-to-visual prompt director. Understand colloquial Egyptian Arabic, spelling variations, shorthand, mixed language and long multi-part requests. Convert the request into one production-ready English image prompt. Preserve every explicit detail and priority: exact number of people/objects, roles, actions, age-appropriate appearance, clothing, setting, time, camera/lens, angle, framing, composition, lighting, colors, mood, materials, and background. Do not add unrequested subjects, props, text, logos, or decorative clutter. Resolve only obvious typos using context; never guess a missing critical detail. If text is requested in the image, copy the exact text verbatim, preserve its language and spelling, and specify its placement and typography; never translate it. If no text is requested, explicitly say no text or watermark. If a reference image is supplied, refer to it as image 0 and follow the requested edit while preserving all aspects the user did not ask to change. Treat avoid-instructions as strict constraints. Return ONLY one clear English prompt, no explanation or markdown.',
+    'USER REQUEST (Arabic or mixed):\n'+userText+'\nSELECTED STYLE: '+(style||'Choose the best fitting visual treatment')+'\nAVOID / NEGATIVE CONSTRAINTS: '+(avoid||'None specified')+'\nREFERENCE IMAGE: '+(hasReference?'Image 0 is attached; use it as the visual reference and change only what the user requests.':'No reference image')+'\nCREATIVITY: '+creativity+'/10; higher means more visual interpretation while keeping the core request intact.\nASPECT RATIO: '+aspect+'\nIMAGE ENGINE: '+engine+'\nWrite a specific prompt for this exact request.',900
   );
   if(!brief||brief.trim().length<30)throw new Error('اللول مقدرش يحوّل وصفك لتعليمات واضحة. جرّب توضح العنصر الأساسي والمشهد.');
   return brief.trim();
@@ -695,8 +704,8 @@ $('#enhBtn').onclick=async()=>{
   const p=$('#imgPrompt').value.trim();if(!p){toast('اكتب وصف الصورة الأول');return}
   const b=$('#enhBtn');b.disabled=true;const old=b.textContent;b.textContent='اللول بيفهم وصفك...';
   try{
-    const engine=$('#imgEngine').value||'flux',style=$('#imgStyle').value,aspect=$('#imgAspect').value;
-    const refined=await buildVisualPrompt(p,style,aspect,engine);
+    const engine=$('#imgEngine').value||'flux',style=[$('#imgStyle').value,$('#imgCustomStyle').value.trim()].filter(Boolean).join('; '),aspect=$('#imgAspect').value,avoid=$('#imgAvoid').value.trim(),creativity=+$('#imgCreativity').value;
+    const refined=await buildVisualPrompt(p,style,aspect,engine,avoid,!!window.elloolImageData,creativity);
     $('#imgPrompt').value=refined;
     toast('تم فهم الوصف وتحويله لبرومبت احترافي');
   }catch(e){toast('تعذر تحسين الوصف: '+e.message,1)}
@@ -706,18 +715,21 @@ window.elloolImageData=null;
 $('#imgUpload').onchange=()=>{const f=$('#imgUpload').files?.[0];if(!f)return;if(f.size>12*1024*1024){toast('حجم الصورة الأقصى 12MB',1);return}const rd=new FileReader();rd.onload=()=>{window.elloolImageData=rd.result;$('#imgSourcePreview').src=rd.result;$('#imgSourcePreview').classList.remove('hidden');$('#clearImgSource').classList.remove('hidden')};rd.readAsDataURL(f)};
 $('#clearImgSource').onclick=()=>{window.elloolImageData=null;$('#imgUpload').value='';$('#imgSourcePreview').removeAttribute('src');$('#imgSourcePreview').classList.add('hidden');$('#clearImgSource').classList.add('hidden')};
 $('#imgEngine').onchange=()=>{S.v.imageEngine=$('#imgEngine').value;persist()};
+$('#imgCreativity').oninput=()=>$('#imgCreativityValue').textContent=$('#imgCreativity').value+' / 10';
 $('#genImgBtn').onclick=async()=>{
   const p=$('#imgPrompt').value.trim();if(!p){$('#imgStatus').textContent='اكتب وصف الصورة الأول.';return}
   if(!$('#imgEngine').value)$('#imgEngine').value='flux';
   const b=$('#genImgBtn');b.disabled=true;$('#imgStatus').textContent='اللول بيحلّل الوصف...';
   try{
-    const src=window.elloolImageData||null,engine=$('#imgEngine').value,style=$('#imgStyle').value,aspect=$('#imgAspect').value;
+    const src=window.elloolImageData||null,engine=$('#imgEngine').value,style=[$('#imgStyle').value,$('#imgCustomStyle').value.trim()].filter(Boolean).join('; '),aspect=$('#imgAspect').value,avoid=$('#imgAvoid').value.trim(),creativity=+$('#imgCreativity').value;
     let finalPrompt=p;
-    if(engine!=='local'&&engine!=='sd')finalPrompt=await buildVisualPrompt(p,style,aspect,engine);
-    else if(engine==='sd')finalPrompt=await buildVisualPrompt(p,style,aspect,engine);
+    if(engine!=='local')finalPrompt=await buildVisualPrompt(p,style,aspect,engine,avoid,!!src,creativity);
+    else if(/[^\x00-\x7F]/.test(p))throw new Error('المحرك المحلي لا يترجم العربية تلقائيًا. استخدم FLUX السحابي أو حسّن الوصف أولاً.');
     if(engine==='local'&&/[\u0600-\u06FF]/.test(p))throw new Error('المحرك المحلي الحالي لا يترجم العربية تلقائيًا. اضغط «حسّن الوصف» أولاً أو استخدم FLUX السحابي.');
     $('#imgStatus').textContent='اللول بيولّد الصورة...';
-    const r=await genImage(finalPrompt,aspect,engine,src);
+    const creativityValue=+$('#imgCreativity').value,guidance=Number((6.5-(creativityValue-1)*0.42).toFixed(2)),seedText=$('#imgSeed').value.trim(),seed=seedText===''?undefined:Number(seedText);
+    if(seedText!==''&&(!Number.isInteger(seed)||seed<0||seed>2147483647))throw new Error('رقم الصورة لازم يكون عددًا صحيحًا من 0 إلى 2147483647.');
+    const r=await genImage(finalPrompt,aspect,engine,src,{guidance,seed});
     S.gallery.unshift({...r,prompt:p});renderGallery();$('#imgStatus').textContent='تم إنشاء الصورة بنجاح ✅';
   }catch(e){$('#imgStatus').textContent='⚠️ '+e.message}
   b.disabled=false;
