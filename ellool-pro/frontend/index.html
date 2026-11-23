@@ -1050,7 +1050,7 @@ cloud.auth.onAuthStateChange((_event,session)=>setCloudState(session?.user||null
   function extractVideo(value){
     if(!value) return null;
     if(typeof value==='string'){
-      if(/^https?:\\/\\//i.test(value)) return value;
+      if(/^https?:\/\//i.test(value)) return value;
       if(value.startsWith('/')) return SPACE+'/gradio_api/file='+value;
       if(value.startsWith('file=')) return SPACE+'/gradio_api/'+value;
       return null;
