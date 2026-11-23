@@ -107,7 +107,7 @@ body.locked #chatIn{-webkit-text-security:disc}
       <div class="max-w-5xl mx-auto w-full grid lg:grid-cols-3 gap-4">
         <div class="card space-y-3 lg:col-span-1 h-fit">
           <h3 class="font-bold">🎨 محرك الصور داخل ELLOOL</h3>
-          <p class="text-xs text-slate-400">محرك الصور داخل ELLOOL: يرسل الطلب إلى Worker الخاص باللول لتشغيل نموذج FLUX.2 Klein، مع إمكانية رفع صورة مرجعية وطلب تعديلها.</p>
+          <p class="text-xs text-slate-400">استوديو الصور في ELLOOL يدعم المحرك السحابي الحالي، أو محرك ELLOOL المحلي الذي يشغّل أوزان نموذج الصور على كمبيوترك بعد تنزيلها.</p>
           <div class="dropzone space-y-2"><div class="text-sm font-bold">ارفع صورة لتعديلها أو استخدمها كمرجع</div><input id="imgUpload" type="file" accept="image/*" class="inp"><img id="imgSourcePreview" class="preview-media hidden" alt="الصورة المرفوعة"><button id="clearImgSource" type="button" class="btn2 hidden">إزالة الصورة</button></div>
           <div><label class="lbl">وصف الصورة أو التعديل المطلوب</label><textarea id="imgPrompt" rows="4" class="inp" placeholder="مثال: حوّل الصورة إلى لقطة سينمائية، مع الحفاظ على ملامح العنصر الأساسي..."></textarea></div>
           <button id="enhBtn" class="btn2 w-full">✨ حسّن الوصف</button>
@@ -116,7 +116,7 @@ body.locked #chatIn{-webkit-text-security:disc}
             <div><label class="lbl">المحرك</label><select id="imgEngine" class="inp"><option value="flux">توليد صور حقيقية بالذكاء الاصطناعي (FLUX)</option><option value="svg">رسم SVG (للرسوم والشعارات)</option><option value="sd">خادم صور خاص (Stable Diffusion WebUI)</option><option value="local">محرك ELLOOL المحلي (بدون API توليد خارجي)</option></select></div>
           </div>
           <div><label class="lbl">الأسلوب</label><select id="imgStyle" class="inp"><option value="">بدون</option><option>flat vector illustration, bold shapes, clean</option><option>minimal modern logo, geometric, two or three colors</option><option>isometric illustration, soft gradients</option><option>neon cyberpunk poster, glowing gradients</option><option>cinematic poster with layered silhouettes and gradient sky</option><option>infographic style, icons and clear hierarchy</option></select></div>
-          <button id="genImgBtn" class="btn w-full">إنشاء / تعديل الصورة</button><p class="text-[11px] text-slate-500">التوليد يتم من واجهة ELLOOL عبر Worker الخاص به. النموذج نفسه مستضاف ضمن Cloudflare Workers AI وليس ملف أوزان مملوكًا لـ ELLOOL.</p>
+          <button id="genImgBtn" class="btn w-full">إنشاء / تعديل الصورة</button><p class="text-[11px] text-slate-500">اختر المحرك السحابي أو المحلي من القائمة. عند اختيار المحرك المحلي، تتم عملية توليد الصورة على الكمبيوتر الذي يشغّل ai_studio.py.</p>
           <p id="imgStatus" class="text-xs text-slate-400"></p>
         </div>
         <div class="lg:col-span-2"><div id="gallery" class="grid sm:grid-cols-2 gap-3"></div></div>
@@ -216,7 +216,7 @@ body.locked #chatIn{-webkit-text-security:disc}
           </div>
           <div><label class="lbl">خادم الصور الخاص (Stable Diffusion WebUI) اختياري</label><input id="imgSrv" class="inp text-left" dir="ltr" placeholder="http://localhost:7860"></div>
           <div class="border-t border-slate-800 pt-3 space-y-2"><h4 class="font-bold text-sm">🖥️ محرك الصور المحلي الخاص بـ ELLOOL</h4><p class="text-xs text-slate-400 leading-6">شغّل ملف ai_studio.py على نفس الكمبيوتر الذي تفتح منه الموقع. المحرك ينفّذ التوليد محليًا بعد تنزيل أوزان النموذج أول مرة. لا يعمل عادةً على التابلت أو الهاتف.</p><div><label class="lbl">عنوان المحرك المحلي</label><input id="localImgUrl" class="inp text-left" dir="ltr" placeholder="http://127.0.0.1:8000"></div><div><label class="lbl">مفتاح الربط المحلي</label><input id="localImgKey" type="password" class="inp text-left" dir="ltr" placeholder="انسخ المفتاح من نافذة تشغيل ai_studio.py"></div><div class="flex gap-2"><button id="localImgTest" type="button" class="btn2 flex-1">اختبار الاتصال</button><span id="localImgStatus" class="text-xs text-slate-400 self-center"></span></div><p class="text-[11px] text-slate-500">الرفع والتعديل بصورة مرجعية غير مدعومين في أول إصدار من المحرك المحلي. استخدم وصفًا نصيًا.</p></div>
-          <div class="border-t border-slate-800 pt-3 space-y-2"><h4 class="font-bold text-sm">محرك الصور والفيديو</h4><p class="text-xs text-slate-500">خادم الصور يدعم txt2img وimg2img. الفيديو الواقعي يحتاج مزوداً خارجياً بواجهة API موثقة؛ لا تضع مفتاحه في صفحة عامة.</p><div class="text-xs text-slate-500">يُستخدم العنوان الموجود في حقل خادم الصور أعلاه.</div></div>
+          <div class="border-t border-slate-800 pt-3 space-y-2"><h4 class="font-bold text-sm">محرك الصور والفيديو</h4><p class="text-xs text-slate-500">تقدر تستخدم خادم الصور المحلي، كما يمكن توليد فيديو حقيقي محليًا بنموذج Wan2.1 عند توافر NVIDIA GPU وذاكرة مناسبة. لا يوجد تحويل تلقائي لمونتاج صور على أنه فيديو حقيقي.</p><div class="text-xs text-slate-500">يُستخدم العنوان الموجود في حقل خادم الصور أعلاه.</div></div>
           <div><label class="lbl">هوية اللول وتعليماته</label><textarea id="sSys" rows="9" class="inp"></textarea></div>
           <div class="flex gap-2"><button id="sSave" class="btn">حفظ</button><button id="sReset" class="btn2">استرجاع الهوية الافتراضية</button></div>
         </div>
