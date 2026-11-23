@@ -321,7 +321,7 @@ const setStatus=t=>{$('#brainStatus').textContent=t||''};
 const explainEngineAvailability=()=>{if(S.v?.engine==='local'&&!navigator.gpu)setStatus('هذا الجهاز لا يدعم WebGPU؛ جرّب متصفحاً وجهازاً يدعمان WebGPU أو شغّل خادم Ollama تملكه. لا يوجد تحويل تلقائي لخدمة ذكاء اصطناعي خارجية.');};
 
 const S={key:null,salt:null,v:null,cur:null,gallery:[],busy:false,locked:true,tmp:[],ctl:null};
-const newVault=()=>({engineChoiceVersion:4,engine:'cloudflare',localImageEngine:{url:'http://127.0.0.1:8000',key:''},localModel:'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',server:{url:'https://ellool-ai-brain.ellool-ai.workers.dev/v1',model:'@cf/meta/llama-3.3-70b-instruct-fp8-fast',key:''},imgServer:'',system:PERSONA,connectors:[],keys:[],chats:[],lock:15,policy:{openness:55,allowCreative:true,allowCode:true,allowRoleplay:true,allowWeb:false,customAllow:'',customDeny:''}});
+const newVault=()=>({engineChoiceVersion:4,engine:'cloudflare',imageEngine:'local',localImageEngine:{url:'http://127.0.0.1:8000',key:''},localModel:'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',server:{url:'https://ellool-ai-brain.ellool-ai.workers.dev/v1',model:'@cf/meta/llama-3.3-70b-instruct-fp8-fast',key:''},imgServer:'',system:PERSONA,connectors:[],keys:[],chats:[],lock:15,policy:{openness:55,allowCreative:true,allowCode:true,allowRoleplay:true,allowWeb:false,customAllow:'',customDeny:''}});
 
 /* ---------- الخزنة المشفرة ---------- */
 async function saveVault(){
@@ -502,7 +502,7 @@ function go(v){
   $$('.nav').forEach(x=>x.classList.toggle('active',x.dataset.go===v));
   $('#title').textContent=v==='chat'?(curChat()?.title||TITLES.chat):TITLES[v];
   closeSide();
-  if(v==='connect')renderConn();if(v==='keys')renderKeys();if(v==='settings')fillSettings();if(v==='image')renderGallery();
+  if(v==='connect')renderConn();if(v==='keys')renderKeys();if(v==='settings')fillSettings();if(v==='image'){ $('#imgEngine').value=S.v.imageEngine||'local';renderGallery();}
 }
 const openSide=()=>{$('#side').classList.remove('translate-x-full');$('#ov').classList.remove('hidden')};
 const closeSide=()=>{$('#side').classList.add('translate-x-full');$('#ov').classList.add('hidden')};
@@ -614,16 +614,20 @@ function isDirectImageRequest(t){
 }
 async function createImageFromChat(c,userText){
   S.busy=true;$('#stopBtn').classList.remove('hidden');
-  const m={role:'model',text:'فهمت طلب الصورة. بحوّل وصفك لتعليمات بصرية دقيقة، وبعدها ببدأ التوليد…'};c.messages.push(m);renderMsgs();
+  const engine=S.v.imageEngine||'local';
+  const m={role:'model',text:engine==='local'?'فهمت طلب الصورة. ببدأ التوليد على محرك ELLOOL المحلي…':'فهمت طلب الصورة. بحوّل وصفك لتعليمات بصرية دقيقة، وبعدها ببدأ التوليد…'};c.messages.push(m);renderMsgs();
   try{
-    const visualBrief=await ask(
-      'You are ELLOOL visual prompt director. Convert the user request into ONE precise, richly visual English prompt for FLUX.2 Klein image generation. Understand Arabic Egyptian dialect and preserve every requested subject, action, setting, mood, style, composition, colors and aspect intent. Do not add unrelated objects. If exact Arabic text is requested inside the image, include that exact text verbatim and instruct clear readable Arabic lettering; otherwise request no text. Specify coherent lighting, camera/framing, depth and high-quality details. Output only the final prompt, no quotes or explanation.',
-      userText,260
-    );
-    const prompt=[(visualBrief||userText).trim(),'High-end professional image, intentional composition, clear focal subject, realistic anatomy and hands, coherent perspective, detailed materials, controlled lighting, clean background hierarchy, no random extra objects, no duplicated subjects, no malformed text.'].join('. ');
-    setStatus('اللول بيولّد الصورة…');
+    let prompt=userText;
+    if(engine!=='local'){
+      const visualBrief=await ask(
+        'You are ELLOOL visual prompt director. Convert the user request into ONE precise, richly visual English prompt for the selected image engine. Understand Arabic Egyptian dialect and preserve every requested subject, action, setting, mood, style, composition, colors and aspect intent. Do not add unrelated objects. If exact Arabic text is requested inside the image, include that exact text verbatim and instruct clear readable Arabic lettering; otherwise request no text. Specify coherent lighting, camera/framing, depth and high-quality details. Output only the final prompt, no quotes or explanation.',
+        userText,260
+      );
+      prompt=[(visualBrief||userText).trim(),'High-end professional image, intentional composition, clear focal subject, realistic anatomy and hands, coherent perspective, detailed materials, controlled lighting, clean background hierarchy, no random extra objects, no duplicated subjects, no malformed text.'].join('. ');
+    }
+    setStatus(engine==='local'?'اللول بيولّد الصورة محليًا…':'اللول بيولّد الصورة…');
     const aspect=/(?:ريلز|reels|تيك.?توك|tiktok|ستوري|story|عمودي|طولي|9:16)/i.test(userText)?'9:16':/(?:يوتيوب|youtube|بانر|banner|غلاف قناة|thumbnail|16:9|عرضي)/i.test(userText)?'16:9':'1:1';
-    const r=await genImage(prompt,aspect,'flux');
+    const r=await genImage(prompt,aspect,engine);
     S.gallery.unshift({...r,prompt:userText});
     Object.defineProperty(m,'imagePreview',{value:r.url,enumerable:false,configurable:true});
     m.text='اتفضل، فهمت وصفك وحوّلته لصورة. هتلاقيها كمان محفوظة في استوديو الصور.';
@@ -694,6 +698,7 @@ $('#enhBtn').onclick=async()=>{
 window.elloolImageData=null;
 $('#imgUpload').onchange=()=>{const f=$('#imgUpload').files?.[0];if(!f)return;if(f.size>12*1024*1024){toast('حجم الصورة الأقصى 12MB',1);return}const rd=new FileReader();rd.onload=()=>{window.elloolImageData=rd.result;$('#imgSourcePreview').src=rd.result;$('#imgSourcePreview').classList.remove('hidden');$('#clearImgSource').classList.remove('hidden')};rd.readAsDataURL(f)};
 $('#clearImgSource').onclick=()=>{window.elloolImageData=null;$('#imgUpload').value='';$('#imgSourcePreview').removeAttribute('src');$('#imgSourcePreview').classList.add('hidden');$('#clearImgSource').classList.add('hidden')};
+$('#imgEngine').onchange=()=>{S.v.imageEngine=$('#imgEngine').value;persist()};
 $('#genImgBtn').onclick=async()=>{
   const p=$('#imgPrompt').value.trim();if(!p)return;const b=$('#genImgBtn');b.disabled=true;$('#imgStatus').textContent='اللول بيشتغل...';
   try{
