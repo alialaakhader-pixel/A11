@@ -627,7 +627,13 @@ async function buildVisualPrompt(userText,style='',aspect='1:1',engine='flux',av
     'USER REQUEST (Arabic or mixed):\n'+userText+'\nSELECTED STYLE: '+(style||'Choose the best fitting visual treatment')+'\nAVOID / NEGATIVE CONSTRAINTS: '+(avoid||'None specified')+'\nREFERENCE IMAGE: '+(hasReference?'Image 0 is attached; use it as the visual reference and change only what the user requests.':'No reference image')+'\nCREATIVITY: '+creativity+'/10; higher means more visual interpretation while keeping the core request intact.\nASPECT RATIO: '+aspect+'\nIMAGE ENGINE: '+engine+'\nWrite a specific prompt for this exact request.',900
   );
   if(!brief||brief.trim().length<30)throw new Error('اللول مقدرش يحوّل وصفك لتعليمات واضحة. جرّب توضح العنصر الأساسي والمشهد.');
-  return brief.trim();
+  let finalBrief=brief.trim();
+  if(finalBrief.length>1900){
+    finalBrief=await ask('Compress this image prompt to at most 1900 characters. Preserve all critical subjects, counts, actions, visual constraints, requested exact text, and reference-image edit instructions. Remove repetition only. Return only the compressed prompt.','PROMPT:\n'+finalBrief,500);
+    finalBrief=String(finalBrief||'').trim();
+  }
+  if(finalBrief.length>2000)throw new Error('الوصف طويل جداً بعد التحسين. اختصره قليلاً أو احذف بعض التفاصيل.');
+  return finalBrief;
 }
 async function createImageFromChat(c,userText){
   S.busy=true;$('#stopBtn').classList.remove('hidden');
@@ -725,7 +731,6 @@ $('#genImgBtn').onclick=async()=>{
     let finalPrompt=p;
     if(engine!=='local')finalPrompt=await buildVisualPrompt(p,style,aspect,engine,avoid,!!src,creativity);
     else if(/[^\x00-\x7F]/.test(p))throw new Error('المحرك المحلي لا يترجم العربية تلقائيًا. استخدم FLUX السحابي أو حسّن الوصف أولاً.');
-    if(engine==='local'&&/[\u0600-\u06FF]/.test(p))throw new Error('المحرك المحلي الحالي لا يترجم العربية تلقائيًا. اضغط «حسّن الوصف» أولاً أو استخدم FLUX السحابي.');
     $('#imgStatus').textContent='اللول بيولّد الصورة...';
     const creativityValue=+$('#imgCreativity').value,guidance=Number((6.5-(creativityValue-1)*0.42).toFixed(2)),seedText=$('#imgSeed').value.trim(),seed=seedText===''?undefined:Number(seedText);
     if(seedText!==''&&(!Number.isInteger(seed)||seed<0||seed>2147483647))throw new Error('رقم الصورة لازم يكون عددًا صحيحًا من 0 إلى 2147483647.');
