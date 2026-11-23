@@ -141,8 +141,9 @@ body.locked #chatIn{-webkit-text-security:disc}
           <h3 class="font-bold">✨ إنشاء فيديو مشاهد بالذكاء الاصطناعي</h3>
           <textarea id="scTopic" rows="3" class="inp" placeholder="صف الفكرة والمكان والحركة والشخصيات والإضاءة..."></textarea>
           <div class="grid grid-cols-2 gap-2"><div><label class="lbl">عدد المشاهد</label><input id="scN" type="number" min="2" max="8" value="4" class="inp"></div><div><label class="lbl">ثواني للمشهد</label><input id="scSec" type="number" min="2" max="10" value="4" class="inp"></div></div>
+          <div class="grid grid-cols-2 gap-2"><div><label class="lbl">حركة الكاميرا</label><select id="scMotion" class="inp"><option value="dynamic">متنوعة تلقائياً</option><option value="pan">تحريك جانبي</option><option value="vertical">تحريك رأسي</option><option value="dolly">اقتراب وابتعاد</option><option value="orbit">حركة سينمائية مائلة</option></select></div><div><label class="lbl">الانتقال بين المشاهد</label><select id="scTransition" class="inp"><option value="cross">تداخل سينمائي</option><option value="fade">تلاشي</option><option value="cut">قطع مباشر</option></select></div></div>
           <button id="scBtn" class="btn w-full">✨ ولّد فيديو من الوصف</button><p id="scStatus" class="text-xs text-slate-400"></p><video id="scOut" class="hidden w-full rounded-2xl border border-slate-800" controls></video><a id="scDl" class="hidden btn2 text-center">⬇️ تحميل الفيديو</a>
-          <div class="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-3 text-xs text-slate-400 leading-6">هذه النسخة تنشئ فيديو رسوم/مشاهد متحركة من الصور. لا تدّعي أنها تولّد حركة بشرية فوتوغرافية أو تحافظ على الصوت الأصلي. سنحتاج ربط مزود text-to-video / video-to-video فعلي لإنتاج واقعية سينمائية.</div>
+          <div class="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-3 text-xs text-slate-400 leading-6">الوضع المجاني: يصنع مونتاجاً متحركاً من مشاهد AI مع تحريك كاميرا متنوع وانتقالات وإضاءة متحركة. الشخصيات داخل الصورة نفسها لا تتحرك كفيديو مولّد حقيقياً؛ هذه ليست خدمة text-to-video.</div>
         </div>
       </div>
     </section>
@@ -562,7 +563,7 @@ async function createImageFromChat(c,userText){
       'You are ELLOOL visual prompt director. Convert the user request into ONE precise, richly visual English prompt for FLUX.2 Klein image generation. Understand Arabic Egyptian dialect and preserve every requested subject, action, setting, mood, style, composition, colors and aspect intent. Do not add unrelated objects. If exact Arabic text is requested inside the image, include that exact text verbatim and instruct clear readable Arabic lettering; otherwise request no text. Specify coherent lighting, camera/framing, depth and high-quality details. Output only the final prompt, no quotes or explanation.',
       userText,260
     );
-    const prompt=(visualBrief||userText).trim();
+    const prompt=[(visualBrief||userText).trim(),'High-end professional image, intentional composition, clear focal subject, realistic anatomy and hands, coherent perspective, detailed materials, controlled lighting, clean background hierarchy, no random extra objects, no duplicated subjects, no malformed text.'].join('. ');
     setStatus('اللول بيولّد الصورة…');
     const aspect=/(?:ريلز|reels|تيك.?توك|tiktok|ستوري|story|عمودي|طولي|9:16)/i.test(userText)?'9:16':/(?:يوتيوب|youtube|بانر|banner|غلاف قناة|thumbnail|16:9|عرضي)/i.test(userText)?'16:9':'1:1';
     const r=await genImage(prompt,aspect,'flux');
@@ -639,8 +640,12 @@ $('#clearImgSource').onclick=()=>{window.elloolImageData=null;$('#imgUpload').va
 $('#genImgBtn').onclick=async()=>{
   const p=$('#imgPrompt').value.trim();if(!p)return;const b=$('#genImgBtn');b.disabled=true;$('#imgStatus').textContent='اللول بيشتغل...';
   try{
-    const full=[p,$('#imgStyle').value].filter(Boolean).join(', ');
     const src=window.elloolImageData||null;
+    $('#imgStatus').textContent='اللول بيحسّن الوصف عشان يطلع تكوين أدق...';
+    let refined='';
+    try{refined=await ask('You are an expert FLUX.2 image prompt engineer. Rewrite the Arabic user request and selected style as one precise English visual prompt. Preserve the exact subject, number of people/objects, action, setting, colors, composition and requested text. Specify camera framing, lens feel, lighting, materials, depth and visual hierarchy. Avoid unintended additions, duplicate subjects, distorted anatomy, extra fingers, watermarks and gibberish text. If Arabic text is requested, quote the exact Arabic wording and demand clean legible typography. Output only the prompt.',p+'\\nStyle: '+$('#imgStyle').value,300)}catch{}
+    const full=[refined||p,$('#imgStyle').value].filter(Boolean).join(', ')+'. High quality, coherent perspective, clear focal point, professional lighting, no watermark.';
+    $('#imgStatus').textContent='اللول بيولّد الصورة...';
     const r=await genImage(full,$('#imgAspect').value,$('#imgEngine').value,src);
     S.gallery.unshift({...r,prompt:full});renderGallery();$('#imgStatus').textContent='تم ✅';
   }catch(e){$('#imgStatus').textContent='⚠️ '+e.message}
@@ -655,11 +660,26 @@ $('#renderVideo').onclick=async()=>{const v=$('#videoSource'),status=$('#editVid
 
 /* ---------- الفيديو ---------- */
 function wrapText(ctx,text,maxW){const words=text.split(' ');const lines=[];let cur='';for(const w of words){const t=cur?cur+' '+w:w;if(ctx.measureText(t).width>maxW&&cur){lines.push(cur);cur=w}else cur=t}if(cur)lines.push(cur);return lines}
-function drawScene(ctx,img,p,cap,W,H,ms){
+function drawScene(ctx,img,p,cap,W,H,ms,motion='dynamic',sceneIndex=0){
   const iw=img.naturalWidth||W,ih=img.naturalHeight||H;
-  const sc=Math.max(W/iw,H/ih)*(1+0.14*p),w=iw*sc,h=ih*sc;
-  ctx.drawImage(img,(W-w)/2-p*30,(H-h)/2,w,h);
-  const g=ctx.createLinearGradient(0,H*.55,0,H);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.85)');ctx.fillStyle=g;ctx.fillRect(0,H*.55,W,H*.45);
+  const mode=motion==='dynamic'?['pan','vertical','dolly','orbit'][sceneIndex%4]:motion;
+  const t=Math.max(0,Math.min(1,p)),wave=Math.sin(t*Math.PI*2);
+  let zoom=1.08,dx=0,dy=0,rot=0;
+  if(mode==='pan'){zoom=1.17;dx=(t-.5)*W*.13;dy=wave*H*.012}
+  else if(mode==='vertical'){zoom=1.16;dx=wave*W*.012;dy=(.5-t)*H*.13}
+  else if(mode==='dolly'){zoom=1.02+.18*(.5-.5*Math.cos(t*Math.PI*2));dx=wave*W*.018}
+  else {zoom=1.15;dx=wave*W*.035;dy=Math.cos(t*Math.PI*2)*H*.018;rot=wave*.012}
+  const sc=Math.max(W/iw,H/ih)*zoom,w=iw*sc,h=ih*sc;
+  ctx.save();ctx.translate(W/2,H/2);ctx.rotate(rot);
+  ctx.drawImage(img,-w/2+dx,-h/2+dy,w,h);ctx.restore();
+  const g=ctx.createLinearGradient(0,H*.5,0,H);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.82)');ctx.fillStyle=g;ctx.fillRect(0,H*.5,W,H*.5);
+  // Subtle animated light sweep adds motion beyond a static zoom.
+  const sweep=((t*1.35+sceneIndex*.23)%1.35)-.15;
+  const glow=ctx.createLinearGradient(W*sweep,0,W*(sweep+.28),H);
+  glow.addColorStop(0,'rgba(45,212,191,0)');glow.addColorStop(.5,'rgba(125,211,252,.075)');glow.addColorStop(1,'rgba(45,212,191,0)');
+  ctx.fillStyle=glow;ctx.fillRect(0,0,W,H);
+  // Moving fine particles for atmosphere; kept subtle so they do not obscure the scene.
+  for(let k=0;k<16;k++){const x=((k*173+ t*W*.22+sceneIndex*71)%(W+40))-20;const y=(k*97+Math.sin(t*6+k)*18)%(H*.72);ctx.beginPath();ctx.arc(x,y,1.2+(k%3)*.45,0,Math.PI*2);ctx.fillStyle='rgba(226,248,255,.22)';ctx.fill()}
   ctx.fillStyle='#fff';ctx.font='bold 40px Cairo, sans-serif';ctx.textAlign='center';ctx.direction='rtl';
   const lines=wrapText(ctx,cap||'',W*.8);lines.forEach((l,i)=>ctx.fillText(l,W/2,H-50-(lines.length-1-i)*54));
   if(ms<500){ctx.fillStyle=`rgba(0,0,0,${1-ms/500})`;ctx.fillRect(0,0,W,H)}
@@ -692,7 +712,16 @@ $('#scBtn').onclick=async()=>{
     await new Promise(res=>{const loop=()=>{
       const t=performance.now()-t0;if(t>=total)return res();
       const i=Math.min(imgs.length-1,Math.floor(t/(sec*1000))),local=t-i*sec*1000;
-      drawScene(ctx,imgs[i],local/(sec*1000),scenes[i].caption,W,H,local);
+      {
+        const motion=$('#scMotion').value,transition=$('#scTransition').value,progress=local/(sec*1000);
+        drawScene(ctx,imgs[i],progress,scenes[i].caption,W,H,local,motion,i);
+        if(i>0&&transition!=='cut'&&local<650){
+          ctx.save();ctx.globalAlpha=transition==='fade'?Math.max(0,1-local/650):Math.max(0,1-local/650)*.72;
+          if(transition==='cross')ctx.drawImage(imgs[i-1],0,0,W,H);
+          else {ctx.fillStyle='#020617';ctx.fillRect(0,0,W,H)}
+          ctx.restore();
+        }
+      }
       st.textContent=`تصدير الفيديو... ${Math.round(t/total*100)}%`;requestAnimationFrame(loop)};loop()});
     rec.stop();await stopped;
     const url=URL.createObjectURL(new Blob(chunks,{type:'video/webm'}));
