@@ -60,6 +60,10 @@ BASE_DIR = Path(__file__).resolve().parent
 OUT = BASE_DIR / "outputs"
 OUT.mkdir(exist_ok=True)
 PORT = int(os.getenv("PORT", "8000"))
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip()
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "").strip()
+SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "media").strip() or "media"
+_sb = None
 
 
 def load_api_key():
@@ -179,10 +183,37 @@ def render_image(prompt, w, h, seed):
              guidance_scale=cfg, generator=gen(seed)).images[0]
 
 
+def publish_result(name, kind, prompt):
+    """Optional archive in private Supabase Storage; local output remains the fallback."""
+    global _sb
+    local_url = f"/files/{name}"
+    if not (SUPABASE_URL and SUPABASE_SERVICE_KEY):
+        return local_url
+    try:
+        from supabase import create_client
+        if _sb is None:
+            _sb = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+        path = f"local/{name}"
+        mime = "video/mp4" if kind == "video" else "image/png"
+        with open(OUT / name, "rb") as stream:
+            _sb.storage.from_(SUPABASE_BUCKET).upload(
+                path, stream.read(), {"content-type": mime, "upsert": "true"}
+            )
+        _sb.table("generations").insert({
+            "user_id": None, "kind": kind, "prompt": prompt,
+            "final_prompt": prompt, "file_path": path
+        }).execute()
+        signed = _sb.storage.from_(SUPABASE_BUCKET).create_signed_url(path, 3600)
+        return signed.get("signedURL") or signed.get("signedUrl") or local_url
+    except Exception as exc:
+        print("Supabase archive unavailable; keeping local file:", type(exc).__name__, exc)
+        return local_url
+
+
 def make_image(r):
     name = f"{uuid.uuid4().hex}.png"
     render_image(r.prompt, r.width, r.height, r.seed).save(OUT / name)
-    return name
+    return publish_result(name, "image", r.prompt)
 
 
 def make_video(r):
@@ -199,7 +230,7 @@ def make_video(r):
             guidance_scale=5.0, num_inference_steps=r.steps,
             generator=gen(r.seed)).frames[0]
     export_to_video(out, str(OUT / name), fps=fps)
-    return name
+    return publish_result(name, "video", r.prompt)
 
 
 def prune_jobs():
@@ -213,8 +244,8 @@ def run_job(job_id, fn, req):
     try:
         with _lock:
             jobs[job_id]["status"] = "running"
-            name = fn(req)
-        jobs[job_id].update(status="done", url=f"/files/{name}")
+            result_url = fn(req)
+        jobs[job_id].update(status="done", url=result_url)
     except Exception as e:
         print(f"Job {job_id} failed: {type(e).__name__}: {e}")
         jobs[job_id].update(status="error", error=f"{type(e).__name__}: {e}")
