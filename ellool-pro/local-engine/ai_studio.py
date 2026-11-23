@@ -161,7 +161,8 @@ def video_pipe():
     _free()
     from diffusers import AutoencoderKLWan, WanPipeline
     vae = AutoencoderKLWan.from_pretrained(WAN_ID, subfolder="vae", torch_dtype=torch.float32)
-    p = WanPipeline.from_pretrained(WAN_ID, vae=vae, torch_dtype=torch.bfloat16)
+    video_dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+    p = WanPipeline.from_pretrained(WAN_ID, vae=vae, torch_dtype=video_dtype)
     p.enable_model_cpu_offload()
     _pipes["video"] = p
     return p
