@@ -106,8 +106,8 @@ body.locked #chatIn{-webkit-text-security:disc}
     <section id="v-image" class="view overflow-y-auto p-4">
       <div class="max-w-5xl mx-auto w-full grid lg:grid-cols-3 gap-4">
         <div class="card space-y-3 lg:col-span-1 h-fit">
-          <h3 class="font-bold">🎨 اللول يرسم بنفسه</h3>
-          <p class="text-xs text-slate-400">توليد صور حقيقية بالذكاء الاصطناعي عبر FLUX.2 Klein، مع إمكانية رفع صورة مرجعية وطلب تعديلها.</p>
+          <h3 class="font-bold">🎨 محرك الصور داخل ELLOOL</h3>
+          <p class="text-xs text-slate-400">محرك الصور داخل ELLOOL: يرسل الطلب إلى Worker الخاص باللول لتشغيل نموذج FLUX.2 Klein، مع إمكانية رفع صورة مرجعية وطلب تعديلها.</p>
           <div class="dropzone space-y-2"><div class="text-sm font-bold">ارفع صورة لتعديلها أو استخدمها كمرجع</div><input id="imgUpload" type="file" accept="image/*" class="inp"><img id="imgSourcePreview" class="preview-media hidden" alt="الصورة المرفوعة"><button id="clearImgSource" type="button" class="btn2 hidden">إزالة الصورة</button></div>
           <div><label class="lbl">وصف الصورة أو التعديل المطلوب</label><textarea id="imgPrompt" rows="4" class="inp" placeholder="مثال: حوّل الصورة إلى لقطة سينمائية، مع الحفاظ على ملامح العنصر الأساسي..."></textarea></div>
           <button id="enhBtn" class="btn2 w-full">✨ حسّن الوصف</button>
@@ -116,7 +116,7 @@ body.locked #chatIn{-webkit-text-security:disc}
             <div><label class="lbl">المحرك</label><select id="imgEngine" class="inp"><option value="flux">توليد صور حقيقية بالذكاء الاصطناعي (FLUX)</option><option value="svg">رسم SVG (للرسوم والشعارات)</option><option value="sd">خادم صور خاص (Stable Diffusion)</option></select></div>
           </div>
           <div><label class="lbl">الأسلوب</label><select id="imgStyle" class="inp"><option value="">بدون</option><option>flat vector illustration, bold shapes, clean</option><option>minimal modern logo, geometric, two or three colors</option><option>isometric illustration, soft gradients</option><option>neon cyberpunk poster, glowing gradients</option><option>cinematic poster with layered silhouettes and gradient sky</option><option>infographic style, icons and clear hierarchy</option></select></div>
-          <button id="genImgBtn" class="btn w-full">إنشاء / تعديل الصورة</button><p class="text-[11px] text-slate-500">محرك FLUX.2 Klein يولّد صوراً حقيقية ويدعم استخدام الصورة المرفوعة كمرجع لإنشاء تعديل جديد.</p>
+          <button id="genImgBtn" class="btn w-full">إنشاء / تعديل الصورة</button><p class="text-[11px] text-slate-500">التوليد يتم من واجهة ELLOOL عبر Worker الخاص به. النموذج نفسه مستضاف ضمن Cloudflare Workers AI وليس ملف أوزان مملوكًا لـ ELLOOL.</p>
           <p id="imgStatus" class="text-xs text-slate-400"></p>
         </div>
         <div class="lg:col-span-2"><div id="gallery" class="grid sm:grid-cols-2 gap-3"></div></div>
@@ -137,19 +137,14 @@ body.locked #chatIn{-webkit-text-security:disc}
           <p id="editVideoStatus" class="text-xs text-slate-400"></p>
           <video id="editedVideo" class="preview-media hidden" controls></video><a id="editedVideoDl" class="btn2 hidden block text-center" download="ellool-edited.webm">تحميل النسخة المعدلة</a>
         </div>
-        <div class="card space-y-3 h-fit border border-emerald-400/40">
-          <div class="flex items-center justify-between gap-2"><h3 class="font-bold text-lg">🎥 ELLOOL Video AI — فيديو حقيقي</h3><span class="text-[10px] rounded-full px-2 py-1 bg-emerald-500/15 text-emerald-300">LTX-2 · مجاني محدود</span></div>
-          <p class="text-xs text-slate-300 leading-6">هذا المحرك يستخدم نموذج LTX-2 لتوليد حركة فعلية من وصفك، وليس تحريك صورة ثابتة. المعالجة تتم على GPU مجاني مشترك؛ قد تنتظر في الطابور أو تصل إلى الحصة المجانية اليومية.</p>
-          <div><label class="lbl">اكتب وصف الفيديو بالتفصيل</label><textarea id="ltxPrompt" rows="5" maxlength="3000" class="inp" placeholder="مثال: لقطة سينمائية واقعية لمدينة مستقبلية وقت الغروب، سيارات تتحرك في الشارع، أشخاص يعبرون الطريق، انعكاسات ضوئية طبيعية، حركة كاميرا ناعمة..."></textarea></div>
-          <div class="grid grid-cols-2 gap-2">
-            <div><label class="lbl">اتجاه الفيديو</label><select id="ltxAspect" class="inp"><option value="landscape">أفقي 16:9</option><option value="portrait">رأسي 9:16</option><option value="square">مربع 1:1</option></select></div>
-            <div><label class="lbl">مدة الفيديو</label><select id="ltxDuration" class="inp"><option value="3">3 ثوانٍ — أسرع</option><option value="5" selected>5 ثوانٍ</option><option value="8">8 ثوانٍ — أطول</option></select></div>
+        <div class="card space-y-3 h-fit border border-amber-400/30">
+          <div class="flex items-center justify-between gap-2"><h3 class="font-bold text-lg">🎥 ELLOOL Video AI</h3><span class="text-[10px] rounded-full px-2 py-1 bg-amber-500/15 text-amber-300">قيد التجهيز</span></div>
+          <p class="text-xs text-slate-300 leading-6">تم إيقاف الاتصال الخارجي السابق لأنه لم يكن يعمل بشكل موثوق، ولأنك طلبت ألا نرسل طلبات الفيديو إلى مواقع توليد أخرى.</p>
+          <div class="rounded-xl border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-300 leading-7">
+            **توليد فيديو حقيقي من وصف نصي** يحتاج نموذج فيديو يعمل على GPU. خادم ELLOOL الحالي (Vercel + Cloudflare Workers AI) لا يوفّر حالياً نموذج فيديو مجانيًا مستضافًا داخل حسابك. مش هنعرض لك زرًا يوهمك إن الفيديو بيتولد وهو مش شغال.
           </div>
-          <div class="rounded-xl border border-slate-700 bg-slate-950/60 p-3 text-[11px] text-slate-400 leading-6">الجودة المتاحة يحددها الخادم المجاني. لا توجد فوترة أو مفتاح مدفوع في هذا الربط. الحصة والطابور تابعان لخدمة GPU العامة وقد يتغيران.</div>
-          <button id="ltxGenerateBtn" class="btn w-full">🎬 إنشاء فيديو حقيقي بالذكاء الاصطناعي</button>
-          <p id="ltxStatus" class="text-xs text-slate-300 leading-6" role="status" aria-live="polite"></p>
-          <video id="ltxOutput" class="hidden w-full rounded-2xl border border-emerald-500/30" controls playsinline></video>
-          <a id="ltxDownload" class="hidden btn2 block text-center" target="_blank" rel="noopener">⬇️ فتح / تحميل الفيديو الناتج</a>
+          <button id="ltxGenerateBtn" class="btn w-full opacity-50" disabled>توليد الفيديو الحقيقي غير متاح حاليًا</button>
+          <p id="ltxStatus" class="text-xs text-slate-400" role="status">المتاح حاليًا: تعديل فيديو ترفعه بنفسك، أو إنشاء مونتاج من صور AI مع توضيح أنه ليس توليد فيديو حقيقيًا.</p>
         </div>
         <div class="card space-y-3 h-fit opacity-90">
           <h3 class="font-bold">🖼️ مونتاج الصور المتحركة (ليس توليد فيديو حقيقيًا)</h3>
@@ -1036,93 +1031,6 @@ cloud.auth.getUser().then(({data,error})=>{
   setCloudState(data.user);
 });
 cloud.auth.onAuthStateChange((_event,session)=>setCloudState(session?.user||null));
-</script>
-<script>
-(()=> {
-  const SPACE='https://lightricks-ltx-2-distilled.hf.space';
-  const $=id=>document.getElementById(id);
-  const btn=$('ltxGenerateBtn');
-  if(!btn) return;
-  const status=$('ltxStatus');
-  const output=$('ltxOutput');
-  const download=$('ltxDownload');
-  const setStatus=t=>{status.textContent=t;};
-  function extractVideo(value){
-    if(!value) return null;
-    if(typeof value==='string'){
-      if(/^https?:\/\//i.test(value)) return value;
-      if(value.startsWith('/')) return SPACE+'/gradio_api/file='+value;
-      if(value.startsWith('file=')) return SPACE+'/gradio_api/'+value;
-      return null;
-    }
-    if(Array.isArray(value)){for(const item of value){const found=extractVideo(item);if(found)return found;}return null;}
-    if(typeof value==='object'){
-      if(typeof value.url==='string') return value.url.startsWith('http')?value.url:SPACE+value.url;
-      if(typeof value.path==='string') return extractVideo(value.path);
-      for(const key of ['video','data','output','files']) if(key in value){const found=extractVideo(value[key]);if(found)return found;}
-      for(const item of Object.values(value)){const found=extractVideo(item);if(found)return found;}
-    }
-    return null;
-  }
-  async function readResult(response){
-    if(!response.ok) throw new Error(response.status===429?'الطابور مزدحم أو وصلت إلى حد الاستخدام المجاني. حاول لاحقًا.':('خادم الفيديو أعاد الخطأ '+response.status));
-    const reader=response.body?.getReader?.();
-    if(!reader){const raw=await response.text();try{return JSON.parse(raw);}catch{throw new Error('تعذر قراءة نتيجة الفيديو.');}}
-    const decoder=new TextDecoder();
-    let buffer='',finalData=null;
-    while(true){
-      const {value,done}=await reader.read();
-      buffer+=decoder.decode(value||new Uint8Array(),{stream:!done});
-      let split;
-      while((split=buffer.indexOf('\n\n'))!==-1){
-        const block=buffer.slice(0,split);buffer=buffer.slice(split+2);
-        const event=(block.match(/^event:\s*(.+)$/m)||[])[1]||'';
-        const data=(block.match(/^data:\s*(.*)$/m)||[])[1];
-        if(data!==undefined){
-          if(event==='error') throw new Error(data||'حدث خطأ أثناء توليد الفيديو.');
-          if(event==='complete'){try{finalData=JSON.parse(data);}catch{throw new Error('وصلت نتيجة غير مفهومة من محرك الفيديو.');}return finalData;}
-          if(event==='generating') setStatus('محرك LTX-2 يعالج الفيديو الآن... قد يستغرق ذلك عدة دقائق.');
-        }
-      }
-      if(done) break;
-    }
-    if(finalData!==null)return finalData;
-    throw new Error('انتهى الاتصال قبل اكتمال توليد الفيديو. حاول مرة أخرى.');
-  }
-  btn.addEventListener('click',async()=>{
-    const prompt=$('ltxPrompt').value.trim();
-    if(prompt.length<12){setStatus('اكتب وصفًا أوضح للفيديو (12 حرفًا على الأقل).');return;}
-    const duration=Number($('ltxDuration').value)||5;
-    const aspect=$('ltxAspect').value;
-    const dims=aspect==='portrait'?[512,768]:aspect==='square'?[512,512]:[768,512];
-    btn.disabled=true;output.classList.add('hidden');download.classList.add('hidden');
-    output.removeAttribute('src');setStatus('جارٍ إرسال طلبك إلى محرك الفيديو الحقيقي LTX-2...');
-    try{
-      const submit=await fetch(SPACE+'/gradio_api/call/generate_video',{
-        method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},
-        body:JSON.stringify({data:[null,prompt,duration,true,42,true,dims[1],dims[0]]}),
-        credentials:'omit'
-      });
-      if(!submit.ok){
-        const detail=await submit.text().catch(()=> '');
-        throw new Error(submit.status===429?'الحصة المجانية مزدحمة أو انتهت مؤقتًا. جرّب لاحقًا.':('تعذر إرسال الطلب إلى محرك الفيديو ('+submit.status+'). '+detail.slice(0,160)));
-      }
-      const job=await submit.json();
-      if(!job.event_id) throw new Error(job.error||'لم يرجع محرك الفيديو رقم المهمة.');
-      setStatus('تم استلام المهمة. انتظر دور GPU المجاني؛ لا تغلق الصفحة أثناء التوليد.');
-      const result=await readResult(await fetch(SPACE+'/gradio_api/call/generate_video/'+encodeURIComponent(job.event_id),{
-        headers:{'Accept':'text/event-stream'},credentials:'omit'
-      }));
-      const videoUrl=extractVideo(result);
-      if(!videoUrl) throw new Error('اكتمل الطلب لكن لم أستطع استخراج رابط ملف الفيديو من النتيجة.');
-      output.src=videoUrl;output.classList.remove('hidden');download.href=videoUrl;
-      download.classList.remove('hidden');setStatus('اكتمل توليد الفيديو الحقيقي بنجاح. يمكنك معاينته أو فتح الملف.');
-      output.load();
-    }catch(error){
-      setStatus((error&&error.message)||'تعذر توليد الفيديو الآن. قد يكون الخادم المجاني متوقفًا أو مشغولًا.');
-    }finally{btn.disabled=false;}
-  });
-})();
 </script>
 </body>
 </html>
