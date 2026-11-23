@@ -38,6 +38,9 @@ def _has(mod):
         return False
 
 
+if os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_SERVICE_KEY"):
+    _DEPS["supabase"] = "supabase"
+
 _missing = [pkg for mod, pkg in _DEPS.items() if not _has(mod)]
 if _missing:
     print("بركّب المكتبات الناقصة:", ", ".join(_missing))
