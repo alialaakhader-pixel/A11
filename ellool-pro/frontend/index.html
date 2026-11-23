@@ -113,7 +113,7 @@ body.locked #chatIn{-webkit-text-security:disc}
           <button id="enhBtn" class="btn2 w-full">✨ حسّن الوصف</button>
           <div class="grid grid-cols-2 gap-2">
             <div><label class="lbl">الأبعاد</label><select id="imgAspect" class="inp"><option>1:1</option><option>16:9</option><option>9:16</option><option>4:3</option><option>3:4</option></select></div>
-            <div><label class="lbl">المحرك</label><select id="imgEngine" class="inp"><option value="flux">توليد صور حقيقية بالذكاء الاصطناعي (FLUX)</option><option value="svg">رسم SVG (للرسوم والشعارات)</option><option value="sd">خادم صور خاص (Stable Diffusion)</option></select></div>
+            <div><label class="lbl">المحرك</label><select id="imgEngine" class="inp"><option value="flux">توليد صور حقيقية بالذكاء الاصطناعي (FLUX)</option><option value="svg">رسم SVG (للرسوم والشعارات)</option><option value="sd">خادم صور خاص (Stable Diffusion WebUI)</option><option value="local">محرك ELLOOL المحلي (بدون API توليد خارجي)</option></select></div>
           </div>
           <div><label class="lbl">الأسلوب</label><select id="imgStyle" class="inp"><option value="">بدون</option><option>flat vector illustration, bold shapes, clean</option><option>minimal modern logo, geometric, two or three colors</option><option>isometric illustration, soft gradients</option><option>neon cyberpunk poster, glowing gradients</option><option>cinematic poster with layered silhouettes and gradient sky</option><option>infographic style, icons and clear hierarchy</option></select></div>
           <button id="genImgBtn" class="btn w-full">إنشاء / تعديل الصورة</button><p class="text-[11px] text-slate-500">التوليد يتم من واجهة ELLOOL عبر Worker الخاص به. النموذج نفسه مستضاف ضمن Cloudflare Workers AI وليس ملف أوزان مملوكًا لـ ELLOOL.</p>
@@ -144,7 +144,7 @@ body.locked #chatIn{-webkit-text-security:disc}
             **توليد فيديو حقيقي من وصف نصي** يحتاج نموذج فيديو يعمل على GPU. خادم ELLOOL الحالي (Vercel + Cloudflare Workers AI) لا يوفّر حالياً نموذج فيديو مجانيًا مستضافًا داخل حسابك. مش هنعرض لك زرًا يوهمك إن الفيديو بيتولد وهو مش شغال.
           </div>
           <button id="ltxGenerateBtn" class="btn w-full opacity-50" disabled>توليد الفيديو الحقيقي غير متاح حاليًا</button>
-          <p id="ltxStatus" class="text-xs text-slate-400" role="status">المتاح حاليًا: تعديل فيديو ترفعه بنفسك، أو إنشاء مونتاج من صور AI مع توضيح أنه ليس توليد فيديو حقيقيًا.</p>
+          <p id="ltxStatus" class="text-xs text-slate-400" role="status">المتاح حاليًا: تعديل فيديو ترفعه بنفسك، أو إنشاء مونتاج من صور AI مع توضيح أنه ليس توليد فيديو حقيقيًا.</p><div class="border-t border-slate-700 pt-3 space-y-2"><h4 class="font-bold text-sm">🎞️ توليد فيديو حقيقي على جهازك</h4><p class="text-xs text-slate-400">يستخدم نموذج Wan2.1 المحلي فقط عند وجود NVIDIA GPU مناسب (مبدئيًا 16GB VRAM أو أكثر). لا يستبدل الفيديو الحقيقي بمونتاج صور.</p><textarea id="localVideoPrompt" rows="3" class="inp" placeholder="اكتب وصف الفيديو والحركة والمشهد..."></textarea><div class="grid grid-cols-2 gap-2"><div><label class="lbl">المدة بالثواني</label><input id="localVideoSeconds" class="inp" type="number" min="1" max="5" value="3"></div><div><label class="lbl">خطوات التوليد</label><input id="localVideoSteps" class="inp" type="number" min="10" max="40" value="30"></div></div><button id="localVideoBtn" type="button" class="btn w-full">توليد فيديو حقيقي بالمحرك المحلي</button><p id="localVideoStatus" class="text-xs text-slate-400"></p><video id="localVideoOut" class="preview-media hidden" controls playsinline></video><a id="localVideoDl" class="btn2 hidden block text-center" download="ellool-local-video.mp4">تحميل الفيديو</a></div>
         </div>
         <div class="card space-y-3 h-fit opacity-90">
           <h3 class="font-bold">🖼️ مونتاج الصور المتحركة (ليس توليد فيديو حقيقيًا)</h3>
@@ -215,6 +215,7 @@ body.locked #chatIn{-webkit-text-security:disc}
             <div><label class="lbl">مفتاح (اختياري)</label><input id="svKey" type="password" class="inp text-left" dir="ltr"></div>
           </div>
           <div><label class="lbl">خادم الصور الخاص (Stable Diffusion WebUI) اختياري</label><input id="imgSrv" class="inp text-left" dir="ltr" placeholder="http://localhost:7860"></div>
+          <div class="border-t border-slate-800 pt-3 space-y-2"><h4 class="font-bold text-sm">🖥️ محرك الصور المحلي الخاص بـ ELLOOL</h4><p class="text-xs text-slate-400 leading-6">شغّل ملف ai_studio.py على نفس الكمبيوتر الذي تفتح منه الموقع. المحرك ينفّذ التوليد محليًا بعد تنزيل أوزان النموذج أول مرة. لا يعمل عادةً على التابلت أو الهاتف.</p><div><label class="lbl">عنوان المحرك المحلي</label><input id="localImgUrl" class="inp text-left" dir="ltr" placeholder="http://127.0.0.1:8000"></div><div><label class="lbl">مفتاح الربط المحلي</label><input id="localImgKey" type="password" class="inp text-left" dir="ltr" placeholder="انسخ المفتاح من نافذة تشغيل ai_studio.py"></div><div class="flex gap-2"><button id="localImgTest" type="button" class="btn2 flex-1">اختبار الاتصال</button><span id="localImgStatus" class="text-xs text-slate-400 self-center"></span></div><p class="text-[11px] text-slate-500">الرفع والتعديل بصورة مرجعية غير مدعومين في أول إصدار من المحرك المحلي. استخدم وصفًا نصيًا.</p></div>
           <div class="border-t border-slate-800 pt-3 space-y-2"><h4 class="font-bold text-sm">محرك الصور والفيديو</h4><p class="text-xs text-slate-500">خادم الصور يدعم txt2img وimg2img. الفيديو الواقعي يحتاج مزوداً خارجياً بواجهة API موثقة؛ لا تضع مفتاحه في صفحة عامة.</p><div class="text-xs text-slate-500">يُستخدم العنوان الموجود في حقل خادم الصور أعلاه.</div></div>
           <div><label class="lbl">هوية اللول وتعليماته</label><textarea id="sSys" rows="9" class="inp"></textarea></div>
           <div class="flex gap-2"><button id="sSave" class="btn">حفظ</button><button id="sReset" class="btn2">استرجاع الهوية الافتراضية</button></div>
@@ -320,7 +321,7 @@ const setStatus=t=>{$('#brainStatus').textContent=t||''};
 const explainEngineAvailability=()=>{if(S.v?.engine==='local'&&!navigator.gpu)setStatus('هذا الجهاز لا يدعم WebGPU؛ جرّب متصفحاً وجهازاً يدعمان WebGPU أو شغّل خادم Ollama تملكه. لا يوجد تحويل تلقائي لخدمة ذكاء اصطناعي خارجية.');};
 
 const S={key:null,salt:null,v:null,cur:null,gallery:[],busy:false,locked:true,tmp:[],ctl:null};
-const newVault=()=>({engineChoiceVersion:4,engine:'cloudflare',localModel:'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',server:{url:'https://ellool-ai-brain.ellool-ai.workers.dev/v1',model:'@cf/meta/llama-3.3-70b-instruct-fp8-fast',key:''},imgServer:'',system:PERSONA,connectors:[],keys:[],chats:[],lock:15,policy:{openness:55,allowCreative:true,allowCode:true,allowRoleplay:true,allowWeb:false,customAllow:'',customDeny:''}});
+const newVault=()=>({engineChoiceVersion:4,engine:'cloudflare',localImageEngine:{url:'http://127.0.0.1:8000',key:''},localModel:'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',server:{url:'https://ellool-ai-brain.ellool-ai.workers.dev/v1',model:'@cf/meta/llama-3.3-70b-instruct-fp8-fast',key:''},imgServer:'',system:PERSONA,connectors:[],keys:[],chats:[],lock:15,policy:{openness:55,allowCreative:true,allowCode:true,allowRoleplay:true,allowWeb:false,customAllow:'',customDeny:''}});
 
 /* ---------- الخزنة المشفرة ---------- */
 async function saveVault(){
@@ -343,7 +344,7 @@ async function unlock(pass){
     decoded=JSON.parse(dec.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(o.iv)},S.key,unb64(o.ct))));
     if(!decoded||typeof decoded!=='object')return false;
   }catch{return false}
-  const d=newVault();S.v={...d,...decoded,server:{...d.server,...(decoded.server||{})},policy:{...d.policy,...(decoded.policy||{})}};
+  const d=newVault();S.v={...d,...decoded,server:{...d.server,...(decoded.server||{})},localImageEngine:{...d.localImageEngine,...(decoded.localImageEngine||{})},policy:{...d.policy,...(decoded.policy||{})}};
   // Cloud-only mode: never initialize or download a WebGPU model on this device.
   S.v.engine='cloudflare';S.v.engineChoiceVersion=4;
   if(!/^https:\/\/ellool-ai-brain\.ellool-ai\.workers\.dev\/v1\/?$/i.test(S.v.server?.url||'')){S.v.server={...d.server};}
@@ -435,8 +436,34 @@ function cleanSvg(raw,w,h){
   return {svg:new XMLSerializer().serializeToString(el),w,h:H};
 }
 function svgToPng(svg,w,h){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>{const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(i,0,0,w,h);c.toBlob(b=>res(URL.createObjectURL(b)),'image/png')};i.onerror=()=>rej(new Error('تعذر تحويل الرسمة'));i.src=svgUrl(svg)})}
+async function localEngineJob(endpoint,payload,onStatus){
+  const cfg=S.v.localImageEngine||{},base=(cfg.url||'http://127.0.0.1:8000').replace(/\/+$/,'');
+  if(!cfg.key)throw new Error('أدخل مفتاح المحرك المحلي في الإعدادات أولاً.');
+  if(!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/i.test(base))throw new Error('عنوان المحرك المحلي يجب أن يكون localhost أو 127.0.0.1.');
+  const headers={'Content-Type':'application/json','X-API-Key':cfg.key};
+  const r=await fetch(base+endpoint,{method:'POST',headers,body:JSON.stringify(payload)});
+  let d={};try{d=await r.json()}catch{}
+  if(!r.ok)throw new Error(d.detail||d.error||('المحرك المحلي رد بخطأ '+r.status));
+  if(!d.job_id)throw new Error('المحرك المحلي لم يُرجع رقم المهمة.');
+  const started=Date.now();
+  while(Date.now()-started<30*60*1000){
+    await sleep(2000);
+    const jr=await fetch(base+'/api/jobs/'+encodeURIComponent(d.job_id),{headers:{'X-API-Key':cfg.key}});
+    let j={};try{j=await jr.json()}catch{}
+    if(!jr.ok)throw new Error(j.detail||('تعذر متابعة المهمة: '+jr.status));
+    if(j.status==='done')return {url:base+j.url};
+    if(j.status==='error')throw new Error(j.error||'فشل التوليد المحلي.');
+    if(onStatus)onStatus(j.status==='queued'?'في انتظار دور المحرك المحلي...':'النموذج بيولّد محليًا، وقد يستغرق وقتًا في أول تشغيل...');
+  }
+  throw new Error('التوليد استغرق أكثر من 30 دقيقة. افحص نافذة تشغيل المحرك المحلي.');
+}
 async function genImage(prompt,aspect='1:1',engine='flux',sourceData=null){
   const [w,h]=ASP[aspect]||ASP['1:1'];
+  if(engine==='local'){
+    if(sourceData)throw new Error('التعديل بصورة مرجعية غير متاح في الإصدار المحلي الأول. احذف الصورة واستخدم وصفًا نصيًا.');
+    const result=await localEngineJob('/api/image',{prompt,width:w,height:h},msg=>$('#imgStatus').textContent=msg);
+    return {...result,w,h};
+  }
   if(engine==='flux'){
     
     const base=(S.v.server?.url||'https://ellool-ai-brain.ellool-ai.workers.dev/v1').replace(/\/+$/,'').replace(/\/v1$/,'');
@@ -659,7 +686,7 @@ function renderGallery(){
 $('#enhBtn').onclick=async()=>{
   const p=$('#imgPrompt').value.trim();if(!p)return;const b=$('#enhBtn');b.disabled=true;
   try{
-    const sd=$('#imgEngine').value==='sd';
+    const sd=['sd','local'].includes($('#imgEngine').value);
     $('#imgPrompt').value=(await ask(sd?'Rewrite the idea as one professional Stable Diffusion prompt: subject, composition, style, lighting, lens, palette, quality tags. Output only the prompt.':'Rewrite the idea as a detailed illustration brief for an SVG artist: subject, composition (foreground / midground / background), color palette with hex codes, mood, lighting. Max 90 words, English. Output only the brief.',p,300)).trim();
   }catch(e){toast(e.message,1)}
   b.disabled=false;setStatus('');
@@ -673,7 +700,7 @@ $('#genImgBtn').onclick=async()=>{
     const src=window.elloolImageData||null;
     $('#imgStatus').textContent='اللول بيحسّن الوصف عشان يطلع تكوين أدق...';
     let refined='';
-    try{refined=await ask('You are an expert FLUX.2 image prompt engineer. Rewrite the Arabic user request and selected style as one precise English visual prompt. Preserve the exact subject, number of people/objects, action, setting, colors, composition and requested text. Specify camera framing, lens feel, lighting, materials, depth and visual hierarchy. Avoid unintended additions, duplicate subjects, distorted anatomy, extra fingers, watermarks and gibberish text. If Arabic text is requested, quote the exact Arabic wording and demand clean legible typography. Output only the prompt.',p+'\\nStyle: '+$('#imgStyle').value,300)}catch{}
+    if($('#imgEngine').value!=='local'){try{refined=await ask('You are an expert image prompt engineer. Rewrite the Arabic request as a precise English visual prompt for the selected image model. Preserve the subject, action, setting, colors, composition and requested text. Specify lighting, materials and visual hierarchy. Output only the prompt.',p+'\\nStyle: '+$('#imgStyle').value,300)}catch{}}
     const full=[refined||p,$('#imgStyle').value].filter(Boolean).join(', ')+'. High quality, coherent perspective, clear focal point, professional lighting, no watermark.';
     $('#imgStatus').textContent='اللول بيولّد الصورة...';
     const r=await genImage(full,$('#imgAspect').value,$('#imgEngine').value,src);
@@ -687,6 +714,19 @@ let sourceVideoUrl=null;
 $('#videoUpload').onchange=()=>{const f=$('#videoUpload').files?.[0];if(!f)return;if(!f.type.startsWith('video/'))return toast('اختار ملف فيديو صحيح',1);if(f.size>250*1024*1024)return toast('الحد الأقصى 250MB في النسخة المحلية',1);if(sourceVideoUrl)URL.revokeObjectURL(sourceVideoUrl);sourceVideoUrl=URL.createObjectURL(f);$('#videoSource').src=sourceVideoUrl;$('#videoSource').classList.remove('hidden');$('#clearVideo').classList.remove('hidden');$('#videoSource').load()};
 $('#clearVideo').onclick=()=>{if(sourceVideoUrl)URL.revokeObjectURL(sourceVideoUrl);sourceVideoUrl=null;$('#videoSource').removeAttribute('src');$('#videoSource').classList.add('hidden');$('#clearVideo').classList.add('hidden');$('#videoUpload').value=''};
 $('#renderVideo').onclick=async()=>{const v=$('#videoSource'),status=$('#editVideoStatus'),btn=$('#renderVideo');if(!v.src)return toast('ارفع فيديو الأول',1);if(!v.videoWidth)return toast('انتظر تحميل الفيديو',1);btn.disabled=true;status.textContent='تجهيز التصدير...';try{const start=Math.max(0,+$('#videoStart').value||0),duration=Math.max(0,+$('#videoDuration').value||0);if(start>=v.duration)throw new Error('بداية المقطع بعد نهاية الفيديو');const end=duration?Math.min(v.duration,start+duration):v.duration;const W=Math.min(1280,v.videoWidth),H=Math.round(W*v.videoHeight/v.videoWidth),cv=document.createElement('canvas');cv.width=W;cv.height=H;const ctx=cv.getContext('2d');const stream=cv.captureStream(30);try{const audio=v.captureStream().getAudioTracks();audio.forEach(t=>stream.addTrack(t))}catch{}const mime=['video/webm;codecs=vp9','video/webm'].find(x=>MediaRecorder.isTypeSupported(x));if(!mime)throw new Error('المتصفح لا يدعم تصدير WebM');const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:6500000}),chunks=[];rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);const stopped=new Promise(r=>rec.onstop=r);const filter=$('#videoFilter').value,caption=$('#videoCaption').value.trim();v.currentTime=start;await new Promise((res,rej)=>{v.onseeked=res;v.onerror=()=>rej(new Error('تعذر قراءة الفيديو'))});await v.play();rec.start();await new Promise(resolve=>{const frame=()=>{if(v.currentTime>=end||v.ended){v.pause();return resolve()}ctx.save();ctx.filter=filter==='bw'?'grayscale(1)':filter==='vivid'?'saturate(1.5) contrast(1.08)':filter==='soft'?'brightness(1.12) saturate(.88)':filter==='cinema'?'contrast(1.12) saturate(1.12) sepia(.16)':'none';ctx.drawImage(v,0,0,W,H);ctx.filter='none';if(filter==='cinema'){ctx.fillStyle='rgba(7,18,30,.12)';ctx.fillRect(0,0,W,H)}if(caption){ctx.direction='rtl';ctx.textAlign='center';ctx.font='bold '+Math.max(22,W*.035)+'px Cairo';ctx.shadowColor='#000';ctx.shadowBlur=8;ctx.fillStyle='#fff';ctx.fillText(caption,W/2,H*.88,W*.85)}ctx.restore();requestAnimationFrame(frame);status.textContent='تصدير '+Math.round((v.currentTime-start)/(end-start)*100)+'%'};frame()});rec.stop();await stopped;const blob=new Blob(chunks,{type:mime}),url=URL.createObjectURL(blob);$('#editedVideo').src=url;$('#editedVideo').classList.remove('hidden');$('#editedVideoDl').href=url;$('#editedVideoDl').classList.remove('hidden');status.textContent='تم التصدير. الصوت يُحفظ إذا كان المتصفح يسمح بالتقاطه.'}catch(e){status.textContent='تعذر التصدير: '+e.message}finally{btn.disabled=false}};
+
+$('#localVideoBtn').onclick=async()=>{
+  const prompt=$('#localVideoPrompt').value.trim(),btn=$('#localVideoBtn'),status=$('#localVideoStatus');
+  if(!prompt)return toast('اكتب وصف الفيديو الأول',1);
+  btn.disabled=true;status.textContent='إرسال طلب الفيديو للمحرك المحلي...';$('#localVideoDl').classList.add('hidden');
+  try{
+    const seconds=Math.max(1,Math.min(5,+$('#localVideoSeconds').value||3));
+    const steps=Math.max(10,Math.min(40,+$('#localVideoSteps').value||30));
+    const result=await localEngineJob('/api/video',{prompt,width:832,height:480,seconds,steps},msg=>status.textContent=msg);
+    const video=$('#localVideoOut');video.src=result.url;video.classList.remove('hidden');$('#localVideoDl').href=result.url;$('#localVideoDl').classList.remove('hidden');status.textContent='اكتمل توليد الفيديو الحقيقي محليًا ✅';
+  }catch(e){status.textContent='تعذر التوليد: '+e.message}
+  finally{btn.disabled=false}
+};
 
 /* ---------- الفيديو ---------- */
 function wrapText(ctx,text,maxW){const words=text.split(' ');const lines=[];let cur='';for(const w of words){const t=cur?cur+' '+w:w;if(ctx.measureText(t).width>maxW&&cur){lines.push(cur);cur=w}else cur=t}if(cur)lines.push(cur);return lines}
@@ -837,11 +877,26 @@ export default{async fetch(req,env){
 
 /* ---------- الإعدادات ---------- */
 function fillSettings(){
-  const v=S.v;$('#sEngine').value=v.engine;$('#mLocal').value=v.localModel;$('#svUrl').value=v.server.url;$('#svModel').value=v.server.model;$('#svKey').value=v.server.key||'';$('#imgSrv').value=v.imgServer||'';$('#sSys').value=v.system;$('#sLock').value=v.lock;
+  const v=S.v;$('#sEngine').value=v.engine;$('#mLocal').value=v.localModel;$('#svUrl').value=v.server.url;$('#svModel').value=v.server.model;$('#svKey').value=v.server.key||'';$('#imgSrv').value=v.imgServer||'';$('#localImgUrl').value=v.localImageEngine?.url||'http://127.0.0.1:8000';$('#localImgKey').value=v.localImageEngine?.key||'';$('#sSys').value=v.system;$('#sLock').value=v.lock;
 }
+$('#localImgTest').onclick=async()=>{
+  const status=$('#localImgStatus'),base=$('#localImgUrl').value.trim().replace(/\/+$/,''),key=$('#localImgKey').value.trim(),btn=$('#localImgTest');
+  btn.disabled=true;status.textContent='جاري الاختبار...';
+  try{
+    if(!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/i.test(base))throw new Error('استخدم http://127.0.0.1:8000');
+    const info=await fetch(base+'/api/info');if(!info.ok)throw new Error('المحرك المحلي لا يستجيب: '+info.status);
+    const meta=await info.json();
+    const auth=await fetch(base+'/api/jobs/__ellool_auth_check__',{headers:{'X-API-Key':key}});
+    if(auth.status===401)throw new Error('مفتاح الربط غير صحيح.');
+    if(auth.status!==404)throw new Error('تعذر التحقق من مفتاح الربط.');
+    status.textContent='متصل ✅ '+meta.device+' · '+(meta.video_ready?'الفيديو الحقيقي متاح':'صور فقط على هذا الجهاز');
+    S.v.localImageEngine={url:base,key};await saveVault();
+  }catch(e){status.textContent='غير متصل: '+e.message}
+  finally{btn.disabled=false}
+};
 $('#sSave').onclick=async()=>{
   const v=S.v;v.engine='cloudflare';v.engineChoiceVersion=4;
-  v.server={url:$('#svUrl').value.trim(),model:$('#svModel').value.trim(),key:$('#svKey').value};v.imgServer=$('#imgSrv').value.trim();
+  v.server={url:$('#svUrl').value.trim(),model:$('#svModel').value.trim(),key:$('#svKey').value};v.imgServer=$('#imgSrv').value.trim();v.localImageEngine={url:$('#localImgUrl').value.trim()||'http://127.0.0.1:8000',key:$('#localImgKey').value.trim()};
   v.system=$('#sSys').value;v.lock=Math.max(1,+$('#sLock').value||15);await saveVault();toast('اتحفظ');startIdle();
 };
 $('#prepBtn').onclick=async()=>{return; /* local model downloads are disabled */
