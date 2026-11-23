@@ -6,3 +6,5 @@ __pycache__/
 *.pyc
 backend/data/*
 !backend/data/.gitkeep
+ellool-pro/local-engine/.ellool_engine_key
+ellool-pro/local-engine/outputs/
