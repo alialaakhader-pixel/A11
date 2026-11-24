@@ -37,7 +37,11 @@ if(isImage){
   const wrapped=new Response(form);
   const result=await env.AI.run(IMAGE_MODEL,{multipart:{body:wrapped.body,contentType:wrapped.headers.get("content-type")}});
   if(!result?.image)return json({error:{message:"محرك الصور لم يُرجع صورة. جرّب وصفاً أبسط."}},502,h);
-  return json({image:"data:image/jpeg;base64,"+result.image,model:IMAGE_MODEL,width,height,edited:!!b.imageData},200,h);
+  const encoded=String(result.image||"").replace(/^data:image\/(?:png|jpeg|webp);base64,/i,"");
+  if(!encoded||!/^[A-Za-z0-9+/]+={0,2}$/.test(encoded))return json({error:{message:"محرك الصور أعاد ملفاً غير صالح. أعد المحاولة."}},502,h);
+  let mime="image/png";
+  try{const head=atob(encoded.slice(0,48));if(head.charCodeAt(0)===0xff&&head.charCodeAt(1)===0xd8&&head.charCodeAt(2)===0xff)mime="image/jpeg";else if(head.startsWith("RIFF")&&head.slice(8,12)==="WEBP")mime="image/webp"}catch{}
+  return json({image:"data:"+mime+";base64,"+encoded,model:IMAGE_MODEL,width,height,edited:!!b.imageData},200,h);
  }catch(e){return json({error:{message:"تعذر توليد الصورة الآن. قد تكون الحصة المجانية انتهت أو الخدمة مشغولة؛ جرّب لاحقاً."}},503,h)}
 }
 if(!Array.isArray(b.messages)||!b.messages.length||b.messages.length>30)return json({error:{message:"المحادثة فارغة أو طويلة أكثر من اللازم."}},400,h);
