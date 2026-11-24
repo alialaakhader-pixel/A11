@@ -42,7 +42,7 @@ if(isImage){
   let mime="image/png";
   try{const head=atob(encoded.slice(0,48));if(head.charCodeAt(0)===0xff&&head.charCodeAt(1)===0xd8&&head.charCodeAt(2)===0xff)mime="image/jpeg";else if(head.startsWith("RIFF")&&head.slice(8,12)==="WEBP")mime="image/webp"}catch{}
   return json({image:"data:"+mime+";base64,"+encoded,model:IMAGE_MODEL,width,height,edited:!!b.imageData},200,h);
- }catch(e){return json({error:{message:"تعذر توليد الصورة الآن. قد تكون الحصة المجانية انتهت أو الخدمة مشغولة؛ جرّب لاحقاً."}},503,h)}
+ }catch(e){const raw=String(e?.message||e||"");console.error("ELLOOL_IMAGE_GENERATION_FAILED",raw.slice(0,1200));const low=raw.toLowerCase();const quota=/quota|limit.?exceed|exceeded|billing|payment|required credits|insufficient credits|429/.test(low);return json({error:{code:quota?"AI_QUOTA_EXHAUSTED":"IMAGE_PROVIDER_ERROR",message:quota?"وصل محرك الصور إلى حد الاستخدام أو انتهت الحصة المتاحة في Cloudflare. لا يمكن تجاوز حد المزود من داخل الموقع؛ جرّب بعد تجدد الحصة أو اربط مزود صور آخر.":"تعذر توليد الصورة من Cloudflare حالياً. السبب التقني: "+raw.replace(/https?:\/\/\S+/g,"[provider]").slice(0,240)}},quota?429:503,h)}
 }
 if(!Array.isArray(b.messages)||!b.messages.length||b.messages.length>30)return json({error:{message:"المحادثة فارغة أو طويلة أكثر من اللازم."}},400,h);
 const msgs=b.messages.filter(m=>m&&["system","user","assistant"].includes(m.role)&&typeof m.content==="string").map(m=>({role:m.role,content:m.content.slice(0,12000)}));if(!msgs.length)return json({error:{message:"لا توجد رسائل نصية صالحة."}},400,h);
