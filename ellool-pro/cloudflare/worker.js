@@ -1,13 +1,14 @@
 const MODEL="@cf/meta/llama-3.1-8b-instruct-fp8-fast";
 const FALLBACK_MODEL="@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const IMAGE_MODEL="@cf/black-forest-labs/flux-2-klein-4b";
+const FAST_IMAGE_MODEL="@cf/black-forest-labs/flux-1-schnell";
 const hits=new Map();
 const isAllowedOrigin=value=>{if(!value)return false;try{const u=new URL(value);if(u.protocol!=="https:")return false;const host=u.hostname.toLowerCase();return host==="ellool-ai-studio.vercel.app"||(host.startsWith("ellool-ai-studio-")&&host.endsWith("-ellool.vercel.app"))}catch{return false}};
 const cors=o=>({"Access-Control-Allow-Origin":o,"Access-Control-Allow-Methods":"POST, OPTIONS, GET","Access-Control-Allow-Headers":"Authorization, Content-Type","Access-Control-Max-Age":"86400","Vary":"Origin"});
 const json=(d,s,h={})=>new Response(JSON.stringify(d),{status:s,headers:{...h,"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store"}});
 const messageOf=r=>{const v=r?.choices?.[0]?.message?.content??r?.response??r?.result?.response??"";if(typeof v==="string")return v.trim();if(Array.isArray(v))return v.map(x=>typeof x==="string"?x:(x?.text||"")).join("").trim();return ""};
 export default{async fetch(req,env){const origin=req.headers.get("Origin")||"",allowed=isAllowedOrigin(origin),h=allowed?cors(origin):{},u=new URL(req.url);
-if(req.method==="GET"&&u.pathname==="/health")return json({ok:true,service:"ELLOOL AI",engine:"Cloudflare Workers AI",model:MODEL,fallback:FALLBACK_MODEL,image_model:IMAGE_MODEL},200,h);
+if(req.method==="GET"&&u.pathname==="/health")return json({ok:true,service:"ELLOOL AI",engine:"Cloudflare Workers AI",model:MODEL,fallback:FALLBACK_MODEL,image_model:IMAGE_MODEL,fast_image_model:FAST_IMAGE_MODEL,fast_image_enabled:env.ENABLE_FLUX1_SCHNELL==="true"},200,h);
 if(!allowed)return json({error:{message:"عنوان الموقع غير مسموح. افتح النسخة الرسمية من ELLOOL."}},403,{"Vary":"Origin"});
 if(req.method==="OPTIONS")return new Response(null,{status:204,headers:h});
 const isImage=req.method==="POST"&&u.pathname==="/v1/images/generations",isChat=req.method==="POST"&&["/v1/chat/completions","/chat/completions"].includes(u.pathname);
@@ -19,9 +20,17 @@ let b;try{const raw=await req.text();if(raw.length>(isImage?7000000:90000))retur
 if(isImage){
  const prompt=typeof b.prompt==="string"?b.prompt.trim():"";
  if(!prompt||prompt.length>2048)return json({error:{message:"اكتب وصفاً للصورة لا يتجاوز 2048 حرفاً."}},400,h);
+ const requestedEngine=b.engine==="schnell"?"schnell":"flux2";
+ if(requestedEngine==="schnell"&&env.ENABLE_FLUX1_SCHNELL!=="true")return json({error:{code:"FEATURE_DISABLED",message:"محرك FLUX.1 schnell جاهز برمجياً لكنه متوقف حتى يتم التأكد من أن حساب Cloudflare على الخطة المجانية فقط."}},503,h);
+ if(requestedEngine==="schnell"&&b.imageData)return json({error:{message:"FLUX.1 schnell يدعم التوليد النصي فقط. استخدم FLUX.2 Klein لتعديل الصور المرجعية."}},400,h);
  const width=Math.max(256,Math.min(1920,Math.round((Number(b.width)||1024)/64)*64));
  const height=Math.max(256,Math.min(1920,Math.round((Number(b.height)||768)/64)*64));
  try{
+  let result;
+  if(requestedEngine==="schnell"){
+   const steps=Math.max(4,Math.min(8,Math.round(Number(b.steps)||4)));
+   result=await env.AI.run(FAST_IMAGE_MODEL,{prompt,steps});
+  }else{
   const form=new FormData();form.append("prompt",prompt);form.append("width",String(width));form.append("height",String(height));
   const guidance=Number(b.guidance);
   if(Number.isFinite(guidance))form.append("guidance",String(Math.max(1,Math.min(10,guidance))));
@@ -35,7 +44,8 @@ if(isImage){
    form.append("input_image_0",new Blob([bytes],{type:match[1]}),"reference");
   }
   const wrapped=new Response(form);
-  const result=await env.AI.run(IMAGE_MODEL,{multipart:{body:wrapped.body,contentType:wrapped.headers.get("content-type")}});
+  result=await env.AI.run(IMAGE_MODEL,{multipart:{body:wrapped.body,contentType:wrapped.headers.get("content-type")}});
+  }
   if(!result?.image)return json({error:{message:"محرك الصور لم يُرجع صورة. جرّب وصفاً أبسط."}},502,h);
   const encoded=String(result.image||"").replace(/^data:image\/(?:png|jpeg|webp);base64,/i,"");
   if(!encoded||!/^[A-Za-z0-9+/]+={0,2}$/.test(encoded))return json({error:{message:"محرك الصور أعاد ملفاً غير صالح. أعد المحاولة."}},502,h);
