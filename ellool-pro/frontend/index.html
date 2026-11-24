@@ -46,6 +46,19 @@ body.locked #chatIn{-webkit-text-security:disc}
 .dot{animation:b 1s infinite ease-in-out alternate}@keyframes b{from{opacity:.2}to{opacity:1}}
 body.locked aside,body.locked #menuBtn,body.locked #mode{display:none!important}
 body.locked #chatIn{-webkit-text-security:disc}
+
+/* ELLOOL image studio refresh */
+#v-image{background:radial-gradient(ellipse at 80% 0%,rgba(45,212,191,.10),transparent 38%),radial-gradient(ellipse at 8% 85%,rgba(99,102,241,.10),transparent 35%),#050b18}
+#v-image .card{border-color:rgba(71,85,105,.72);box-shadow:0 18px 55px rgba(0,0,0,.24)}
+#v-image .card:first-child{background:linear-gradient(155deg,rgba(15,35,53,.96),rgba(10,17,33,.96));}
+#gallery .card{overflow:hidden;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;background:linear-gradient(150deg,rgba(18,31,50,.96),rgba(8,14,27,.98))}
+#gallery .card:hover{transform:translateY(-3px);border-color:rgba(45,212,191,.55);box-shadow:0 18px 42px rgba(0,0,0,.3)}
+#gallery .gallery-image{display:block;width:100%;min-height:220px;max-height:520px;aspect-ratio:4/3;object-fit:contain;background:radial-gradient(circle at 50% 45%,#17253a,#080e1b 72%);cursor:zoom-in}
+#gallery .gallery-error{min-height:220px;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;color:#fda4af;background:#190f1b;border-radius:12px;font-size:12px}
+#v-image .studio-hero{background:linear-gradient(115deg,rgba(13,148,136,.22),rgba(30,41,59,.75) 48%,rgba(79,70,229,.18));border:1px solid rgba(94,234,212,.18);box-shadow:0 18px 60px rgba(0,0,0,.22)}
+#v-image .dropzone{background:rgba(2,6,23,.55);border-color:rgba(100,116,139,.65)}
+#v-image .inp{background:rgba(2,6,23,.78)}
+@media(max-width:640px){#v-image{padding:12px}#gallery .gallery-image{min-height:180px}}
 </style>
 </head>
 <body class="locked bg-slate-950 text-slate-100 h-screen overflow-hidden">
@@ -103,7 +116,7 @@ body.locked #chatIn{-webkit-text-security:disc}
       </div>
     </section>
 
-    <section id="v-image" class="view overflow-y-auto p-4">
+    <section id="v-image" class="view overflow-y-auto p-4"><div class="studio-hero rounded-2xl p-4 sm:p-5 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><div class="text-[10px] tracking-[.22em] text-teal-300 font-bold">ELLOOL CREATIVE LAB</div><h2 class="text-xl sm:text-2xl font-black mt-1">استوديو الصور الاحترافي</h2><p class="text-xs sm:text-sm text-slate-300 mt-1">حوّل فكرتك لصورة متقنة — تحكم في الأسلوب، الإضاءة، الأبعاد، والنتائج من مكان واحد.</p></div><div class="flex flex-wrap gap-2 text-[10px]"><span class="rounded-full bg-teal-400/10 border border-teal-300/20 px-3 py-1.5 text-teal-200">FLUX AI</span><span class="rounded-full bg-indigo-400/10 border border-indigo-300/20 px-3 py-1.5 text-indigo-200">معرض مباشر</span><span class="rounded-full bg-slate-700/50 border border-slate-500/30 px-3 py-1.5 text-slate-200">عربي / English</span></div></div>
       <div class="max-w-5xl mx-auto w-full grid lg:grid-cols-3 gap-4">
         <div class="card space-y-3 lg:col-span-1 h-fit">
           <h3 class="font-bold">🎨 محرك الصور داخل ELLOOL</h3>
@@ -126,7 +139,7 @@ body.locked #chatIn{-webkit-text-security:disc}
             <div class="flex items-center justify-between"><label class="lbl !mb-0">حرية الإبداع</label><b id="imgCreativityValue" class="text-xs text-amber-300">6 / 10</b></div>
             <input id="imgCreativity" class="w-full" type="range" min="1" max="10" value="6">
             <div class="flex justify-between text-[10px] text-slate-500"><span>التزام أكبر بوصفك</span><span>حرية وابتكار أكثر</span></div>
-            <div class="grid grid-cols-2 gap-2"><div><label class="lbl">رقم ثابت للصورة (اختياري)</label><input id="imgSeed" type="number" min="0" max="2147483647" class="inp" placeholder="عشوائي كل مرة"></div><div><label class="lbl">نسبة الصورة</label><select id="imgAspect" class="inp"><option>1:1</option><option>16:9</option><option>9:16</option><option>4:3</option><option>3:4</option></select></div></div>
+            <div class="grid grid-cols-2 gap-2"><div><label class="lbl">رقم ثابت للصورة (اختياري)</label><input id="imgSeed" type="number" min="0" max="2147483647" class="inp" placeholder="عشوائي كل مرة"></div><div><label class="lbl">نسبة الصورة</label><select id="imgAspectSecondary" class="inp"><option>1:1</option><option>16:9</option><option>9:16</option><option>4:3</option><option>3:4</option></select></div></div>
             <p class="text-[10px] text-slate-500">استخدم نفس رقم الصورة لإعادة تجربة نتيجة قريبة. تغيير الوصف أو الإعدادات قد يغيّر النتيجة.</p>
           </div>
           <button id="genImgBtn" class="btn w-full">إنشاء / تعديل الصورة</button><p class="text-[11px] text-slate-500">المحرك السحابي هو الاختيار الافتراضي ويعمل من الموقع مباشرة. المحرك المحلي يحتاج تشغيل ai_studio.py على الكمبيوتر.</p>
@@ -476,7 +489,8 @@ async function genImage(prompt,aspect='1:1',engine='flux',sourceData=null,option
     const r=await fetch(base+'/v1/images/generations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     let d={};try{d=await r.json()}catch{}
     if(!r.ok)throw new Error(d.error?.message||('خدمة الصور ردت بخطأ '+r.status));
-    if(!d.image)throw new Error('خدمة الصور لم تُرجع صورة.');
+    if(typeof d.image!=='string'||!/^data:image\/(?:png|jpeg|webp);base64,/i.test(d.image))throw new Error('خدمة الصور رجّعت بيانات غير صالحة للصورة. جرّب مرة أخرى.');
+    await new Promise((resolve,reject)=>{const probe=new Image();probe.onload=()=>resolve();probe.onerror=()=>reject(new Error('تم إنشاء النتيجة لكن المتصفح لم يستطع فك ملف الصورة. أعد المحاولة.'));probe.src=d.image});
     return {url:d.image,w,h};
   }
   if(engine==='sd'){
@@ -717,6 +731,8 @@ $('#imgUpload').onchange=()=>{const f=$('#imgUpload').files?.[0];if(!f)return;if
 $('#clearImgSource').onclick=()=>{window.elloolImageData=null;$('#imgUpload').value='';$('#imgSourcePreview').removeAttribute('src');$('#imgSourcePreview').classList.add('hidden');$('#clearImgSource').classList.add('hidden')};
 $('#imgEngine').onchange=()=>{S.v.imageEngine=$('#imgEngine').value;persist()};
 $('#imgCreativity').oninput=()=>$('#imgCreativityValue').textContent=$('#imgCreativity').value+' / 10';
+$('#imgAspectSecondary').onchange=()=>$('#imgAspect').value=$('#imgAspectSecondary').value;
+$('#imgAspect').onchange=()=>$('#imgAspectSecondary').value=$('#imgAspect').value;
 $('#genImgBtn').onclick=async()=>{
   const p=$('#imgPrompt').value.trim();if(!p){$('#imgStatus').textContent='اكتب وصف الصورة الأول.';return}
   if(!$('#imgEngine').value)$('#imgEngine').value='flux';
