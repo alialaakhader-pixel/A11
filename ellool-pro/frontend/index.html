@@ -130,7 +130,7 @@ body.locked #chatIn{-webkit-text-security:disc}
           <button id="enhBtn" class="btn2 w-full">✨ حسّن الوصف باحترافية</button>
           <div class="grid grid-cols-2 gap-2">
             <div><label class="lbl">الأبعاد</label><select id="imgAspect" class="inp"><option>1:1</option><option>16:9</option><option>9:16</option><option>4:3</option><option>3:4</option></select></div>
-            <div><label class="lbl">المحرك</label><select id="imgEngine" class="inp"><option value="flux">FLUX.2 Klein 4B — توليد وتعديل بالمرجع</option><option value="schnell" disabled>FLUX.1 schnell — جاهز، ينتظر تأكيد خطة Free</option><option value="svg">رسم SVG (للرسوم والشعارات)</option><option value="sd">خادم صور خاص (Stable Diffusion WebUI)</option><option value="local">محرك ELLOOL المحلي (يتطلب تشغيله على الكمبيوتر)</option></select></div>
+            <div><label class="lbl">المحرك</label><select id="imgEngine" class="inp"><option value="ovh">OVHcloud SDXL — مجاني بدون حساب (2 صورة/دقيقة)</option><option value="flux">FLUX.2 Klein 4B — توليد وتعديل بالمرجع</option><option value="schnell" disabled>FLUX.1 schnell — جاهز، ينتظر تأكيد خطة Free</option><option value="svg">رسم SVG (للرسوم والشعارات)</option><option value="sd">خادم صور خاص (Stable Diffusion WebUI)</option><option value="local">محرك ELLOOL المحلي (يتطلب تشغيله على الكمبيوتر)</option></select></div>
           </div>
           <div><label class="lbl">الأسلوب البصري</label><select id="imgStyle" class="inp"><option value="">اختيار تلقائي حسب الوصف</option><option value="photorealistic editorial photography, natural textures and realistic lighting">واقعي فوتوغرافي</option><option value="cinematic film still, dramatic composition, professional color grading">سينمائي</option><option value="premium 3D render, detailed materials, studio lighting">3D واقعي</option><option value="anime illustration, expressive linework, rich colors">أنمي</option><option value="watercolor illustration, textured paper, delicate pigments">ألوان مائية</option><option value="hand-drawn digital illustration, expressive brushwork">رسم رقمي</option><option value="flat vector illustration, bold shapes, clean geometry">Vector</option><option value="minimal modern logo, geometric, clean negative space">شعار Minimal</option><option value="luxury product photography, precise reflections, premium studio setup">تصوير منتجات فاخر</option><option value="fashion editorial photography, premium styling and lighting">تصوير أزياء</option><option value="architectural visualization, realistic materials and global illumination">تصميم معماري</option><option value="infographic illustration, clear hierarchy, clean icons and labels">إنفوجرافيك</option><option value="neon cyberpunk poster, luminous details and atmospheric haze">Cyberpunk</option><option value="vintage film photography, subtle grain and warm analog tones">Vintage</option></select></div>
           <div><label class="lbl">توجيه فني إضافي (اختياري)</label><input id="imgCustomStyle" class="inp" placeholder="مثال: إضاءة ذهبية، خلفية زرقاء داكنة، عدسة 85mm..."></div>
@@ -140,7 +140,7 @@ body.locked #chatIn{-webkit-text-security:disc}
             <input id="imgCreativity" class="w-full" type="range" min="1" max="10" value="6">
             <div class="flex justify-between text-[10px] text-slate-500"><span>التزام أكبر بوصفك</span><span>حرية وابتكار أكثر</span></div>
             <div class="grid grid-cols-2 gap-2"><div><label class="lbl">رقم ثابت للصورة (اختياري)</label><input id="imgSeed" type="number" min="0" max="2147483647" class="inp" placeholder="عشوائي كل مرة"></div><div><label class="lbl">نسبة الصورة</label><select id="imgAspectSecondary" class="inp"><option>1:1</option><option>16:9</option><option>9:16</option><option>4:3</option><option>3:4</option></select></div></div>
-            <div><label class="lbl">خطوات الجودة — FLUX.1 schnell</label><select id="imgSteps" class="inp"><option value="4">4 — أسرع</option><option value="6">6 — متوازن</option><option value="8">8 — تفاصيل أكثر ووقت أطول</option></select><p class="text-[10px] text-slate-500 mt-1">هذا الإعداد يخص FLUX.1 schnell فقط، ويظل غير متاح حتى تأكيد خطة Cloudflare المجانية.</p></div>
+            <div><label class="lbl">خطوات الجودة — FLUX.1 schnell</label><select id="imgSteps" class="inp"><option value="4">4 — أسرع</option><option value="6">6 — متوازن</option><option value="8">8 — تفاصيل أكثر ووقت أطول</option></select><p class="text-[10px] text-slate-500 mt-1">محرك OVHcloud المجاني يعمل دون حساب أو بطاقة، بحد أقصى طلبين في الدقيقة. يخرج صورة مربعة 1024×1024 ولا يدعم الصورة المرجعية.</p></div>
             <p class="text-[10px] text-slate-500">استخدم نفس رقم الصورة لإعادة تجربة نتيجة قريبة. تغيير الوصف أو الإعدادات قد يغيّر النتيجة.</p>
           </div>
           <button id="genImgBtn" class="btn w-full">إنشاء / تعديل الصورة</button><p class="text-[11px] text-slate-500">المحرك السحابي هو الاختيار الافتراضي ويعمل من الموقع مباشرة. المحرك المحلي يحتاج تشغيل ai_studio.py على الكمبيوتر.</p>
@@ -341,7 +341,7 @@ const setStatus=t=>{$('#brainStatus').textContent=t||''};
 const explainEngineAvailability=()=>{if(S.v?.engine==='local'&&!navigator.gpu)setStatus('هذا الجهاز لا يدعم WebGPU؛ جرّب متصفحاً وجهازاً يدعمان WebGPU أو شغّل خادم Ollama تملكه. لا يوجد تحويل تلقائي لخدمة ذكاء اصطناعي خارجية.');};
 
 const S={key:null,salt:null,v:null,cur:null,gallery:[],busy:false,locked:true,tmp:[],ctl:null};
-const newVault=()=>({engineChoiceVersion:4,engine:'cloudflare',imageEngine:'flux',localImageEngine:{url:'http://127.0.0.1:8000',key:''},localModel:'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',server:{url:'https://ellool-ai-brain.ellool-ai.workers.dev/v1',model:'@cf/meta/llama-3.3-70b-instruct-fp8-fast',key:''},imgServer:'',system:PERSONA,connectors:[],keys:[],chats:[],lock:15,policy:{openness:85,allowCreative:true,allowCode:true,allowRoleplay:true,allowWeb:false,customAllow:'',customDeny:''}});
+const newVault=()=>({engineChoiceVersion:4,engine:'cloudflare',imageEngine:'ovh',localImageEngine:{url:'http://127.0.0.1:8000',key:''},localModel:'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',server:{url:'https://ellool-ai-brain.ellool-ai.workers.dev/v1',model:'@cf/meta/llama-3.3-70b-instruct-fp8-fast',key:''},imgServer:'',system:PERSONA,connectors:[],keys:[],chats:[],lock:15,policy:{openness:85,allowCreative:true,allowCode:true,allowRoleplay:true,allowWeb:false,customAllow:'',customDeny:''}});
 
 /* ---------- الخزنة المشفرة ---------- */
 async function saveVault(){
@@ -364,7 +364,7 @@ async function unlock(pass){
     decoded=JSON.parse(dec.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(o.iv)},S.key,unb64(o.ct))));
     if(!decoded||typeof decoded!=='object')return false;
   }catch{return false}
-  const d=newVault();S.v={...d,...decoded,server:{...d.server,...(decoded.server||{})},localImageEngine:{...d.localImageEngine,...(decoded.localImageEngine||{})},policy:{...d.policy,...(decoded.policy||{})}};if(S.v.imageEngine==='local'){S.v.imageEngine='flux';}if(!S.v.imageEngine)S.v.imageEngine='flux';
+  const d=newVault();S.v={...d,...decoded,server:{...d.server,...(decoded.server||{})},localImageEngine:{...d.localImageEngine,...(decoded.localImageEngine||{})},policy:{...d.policy,...(decoded.policy||{})}};if(S.v.imageEngine==='local'||S.v.imageEngine==='flux'||S.v.imageEngine==='schnell')S.v.imageEngine='ovh';if(!S.v.imageEngine)S.v.imageEngine='ovh';
   // Cloud-only mode: never initialize or download a WebGPU model on this device.
   S.v.engine='cloudflare';S.v.engineChoiceVersion=4;
   if(!/^https:\/\/ellool-ai-brain\.ellool-ai\.workers\.dev\/v1\/?$/i.test(S.v.server?.url||'')){S.v.server={...d.server};}
@@ -484,6 +484,15 @@ async function genImage(prompt,aspect='1:1',engine='flux',sourceData=null,option
     const result=await localEngineJob('/api/image',{prompt,width:w,height:h},msg=>$('#imgStatus').textContent=msg);
     return {...result,w,h};
   }
+  if(engine==='ovh'){
+    if(sourceData)throw new Error('محرك OVHcloud المجاني يدعم إنشاء صورة من الوصف النصي فقط، ولا يدعم تعديل صورة مرجعية.');
+    const r=await fetch('/api/ovh-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
+    let d={};try{d=await r.json()}catch{}
+    if(!r.ok)throw new Error(d.error||('محرك OVHcloud رد بخطأ '+r.status));
+    if(typeof d.image!=='string'||!/^data:image\\/(?:png|jpeg|webp);base64,/i.test(d.image))throw new Error('محرك OVHcloud لم يُرجع صورة صالحة.');
+    await new Promise((resolve,reject)=>{const probe=new Image();probe.onload=()=>resolve();probe.onerror=()=>reject(new Error('تعذر فتح الصورة الناتجة. أعد المحاولة.'));probe.src=d.image});
+    return {url:d.image,w:1024,h:1024};
+  }
   if(engine==='schnell'){
     if(sourceData)throw new Error('FLUX.1 schnell مخصص للتوليد من النص فقط؛ استخدم FLUX.2 Klein لتعديل صورة مرجعية.');
     const base=(S.v.server?.url||'https://ellool-ai-brain.ellool-ai.workers.dev/v1').replace(/\/+$/,'').replace(/\/v1$/,'');
@@ -533,7 +542,7 @@ function go(v){
   $$('.nav').forEach(x=>x.classList.toggle('active',x.dataset.go===v));
   $('#title').textContent=v==='chat'?(curChat()?.title||TITLES.chat):TITLES[v];
   closeSide();
-  if(v==='connect')renderConn();if(v==='keys')renderKeys();if(v==='settings')fillSettings();if(v==='image'){ $('#imgEngine').value=S.v.imageEngine||'flux';renderGallery();}
+  if(v==='connect')renderConn();if(v==='keys')renderKeys();if(v==='settings')fillSettings();if(v==='image'){ $('#imgEngine').value=S.v.imageEngine||'ovh';renderGallery();}
 }
 const openSide=()=>{$('#side').classList.remove('translate-x-full');$('#ov').classList.remove('hidden')};
 const closeSide=()=>{$('#side').classList.add('translate-x-full');$('#ov').classList.add('hidden')};
@@ -742,7 +751,7 @@ $('#enhBtn').onclick=async()=>{
 window.elloolImageData=null;
 $('#imgUpload').onchange=()=>{const f=$('#imgUpload').files?.[0];if(!f)return;if(f.size>12*1024*1024){toast('حجم الصورة الأقصى 12MB',1);return}const rd=new FileReader();rd.onload=()=>{window.elloolImageData=rd.result;$('#imgSourcePreview').src=rd.result;$('#imgSourcePreview').classList.remove('hidden');$('#clearImgSource').classList.remove('hidden')};rd.readAsDataURL(f)};
 $('#clearImgSource').onclick=()=>{window.elloolImageData=null;$('#imgUpload').value='';$('#imgSourcePreview').removeAttribute('src');$('#imgSourcePreview').classList.add('hidden');$('#clearImgSource').classList.add('hidden')};
-$('#imgEngine').onchange=()=>{S.v.imageEngine=$('#imgEngine').value;persist()};
+$('#imgEngine').onchange=()=>{const engine=$('#imgEngine').value;S.v.imageEngine=engine;const two=$('#imgCount').querySelector('option[value="2"]');if(two)two.disabled=engine==='ovh';if(engine==='ovh'&&$('#imgCount').value==='2')$('#imgCount').value='1';if(engine==='ovh')$('#imgStatus').textContent='محرك مجاني خارجي: صورتان كحد أقصى في الدقيقة، دون حساب أو بطاقة.';persist()};
 $('#imgCreativity').oninput=()=>$('#imgCreativityValue').textContent=$('#imgCreativity').value+' / 10';
 $('#imgAspectSecondary').onchange=()=>$('#imgAspect').value=$('#imgAspectSecondary').value;
 $('#imgAspect').onchange=()=>$('#imgAspectSecondary').value=$('#imgAspect').value;
