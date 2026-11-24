@@ -140,10 +140,10 @@ body.locked #chatIn{-webkit-text-security:disc}
             <input id="imgCreativity" class="w-full" type="range" min="1" max="10" value="6">
             <div class="flex justify-between text-[10px] text-slate-500"><span>التزام أكبر بوصفك</span><span>حرية وابتكار أكثر</span></div>
             <div class="grid grid-cols-2 gap-2"><div><label class="lbl">رقم ثابت للصورة (اختياري)</label><input id="imgSeed" type="number" min="0" max="2147483647" class="inp" placeholder="عشوائي كل مرة"></div><div><label class="lbl">نسبة الصورة</label><select id="imgAspectSecondary" class="inp"><option>1:1</option><option>16:9</option><option>9:16</option><option>4:3</option><option>3:4</option></select></div></div>
-            <div><label class="lbl">خطوات الجودة — FLUX.1 schnell</label><select id="imgSteps" class="inp"><option value="4">4 — أسرع</option><option value="6">6 — متوازن</option><option value="8">8 — تفاصيل أكثر ووقت أطول</option></select><p class="text-[10px] text-slate-500 mt-1">محرك OVHcloud المجاني يعمل دون حساب أو بطاقة، بحد أقصى طلبين في الدقيقة. يخرج صورة مربعة 1024×1024 ولا يدعم الصورة المرجعية.</p></div>
+            <div><label class="lbl">إعدادات خطوات الجودة (للمحركات المدعومة)</label><select id="imgSteps" class="inp"><option value="4">4 — أسرع</option><option value="6">6 — متوازن</option><option value="8">8 — تفاصيل أكثر ووقت أطول</option></select><p class="text-[10px] text-slate-500 mt-1">محرك OVHcloud المجاني يعمل دون حساب أو بطاقة، بحد أقصى طلبين في الدقيقة. يخرج صورة مربعة 1024×1024 ولا يدعم الصورة المرجعية.</p></div>
             <p class="text-[10px] text-slate-500">استخدم نفس رقم الصورة لإعادة تجربة نتيجة قريبة. تغيير الوصف أو الإعدادات قد يغيّر النتيجة.</p>
           </div>
-          <button id="genImgBtn" class="btn w-full">إنشاء / تعديل الصورة</button><p class="text-[11px] text-slate-500">المحرك السحابي هو الاختيار الافتراضي ويعمل من الموقع مباشرة. المحرك المحلي يحتاج تشغيل ai_studio.py على الكمبيوتر.</p>
+          <button id="genImgBtn" class="btn w-full">إنشاء / تعديل الصورة</button><p class="text-[11px] text-slate-500">المحرك المجاني الافتراضي يعمل من الموقع مباشرة دون حساب أو بطاقة؛ وقد يفرض مزوّد الخدمة انتظارًا بين الطلبات. المحرك المحلي يحتاج تشغيل ai_studio.py على الكمبيوتر.</p>
           <p id="imgStatus" class="text-xs text-slate-400"></p>
         </div>
         <div class="lg:col-span-2"><div id="gallery" class="grid sm:grid-cols-2 gap-3"></div></div>
@@ -489,7 +489,7 @@ async function genImage(prompt,aspect='1:1',engine='flux',sourceData=null,option
     const r=await fetch('/api/ovh-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
     let d={};try{d=await r.json()}catch{}
     if(!r.ok)throw new Error(d.error||('محرك OVHcloud رد بخطأ '+r.status));
-    if(typeof d.image!=='string'||!/^data:image\\/(?:png|jpeg|webp);base64,/i.test(d.image))throw new Error('محرك OVHcloud لم يُرجع صورة صالحة.');
+    if(typeof d.image!=='string'||!/^data:image\/(?:png|jpeg|webp);base64,/i.test(d.image))throw new Error('محرك OVHcloud لم يُرجع صورة صالحة.');
     await new Promise((resolve,reject)=>{const probe=new Image();probe.onload=()=>resolve();probe.onerror=()=>reject(new Error('تعذر فتح الصورة الناتجة. أعد المحاولة.'));probe.src=d.image});
     return {url:d.image,w:1024,h:1024};
   }
