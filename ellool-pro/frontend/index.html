@@ -109,8 +109,12 @@ body.locked #chatIn{-webkit-text-security:disc}
           <h3 class="font-bold">🎨 محرك الصور داخل ELLOOL</h3>
           <p class="text-xs text-slate-400">توليد صور حقيقية مباشرة من وصفك باستخدام FLUX على خادم ELLOOL السحابي المجاني. يمكنك أيضًا رفع صورة مرجعية لتعديلها.</p>
           <div class="dropzone space-y-2"><div class="text-sm font-bold">ارفع صورة لتعديلها أو استخدمها كمرجع</div><input id="imgUpload" type="file" accept="image/*" class="inp"><img id="imgSourcePreview" class="preview-media hidden" alt="الصورة المرفوعة"><button id="clearImgSource" type="button" class="btn2 hidden">إزالة الصورة</button></div>
-          <div><label class="lbl">وصف الصورة أو التعديل المطلوب</label><textarea id="imgPrompt" rows="4" class="inp" placeholder="مثال: حوّل الصورة إلى لقطة سينمائية، مع الحفاظ على ملامح العنصر الأساسي..."></textarea></div>
-          <button id="enhBtn" class="btn2 w-full">✨ حسّن الوصف</button>
+          <div><label class="lbl">وصف الصورة أو التعديل المطلوب</label><textarea id="imgPrompt" rows="4" class="inp" placeholder="اكتب فكرتك بالمصري أو العربي أو الإنجليزي، حتى لو الوصف طويل..."></textarea></div>
+          <div class="grid grid-cols-2 gap-2">
+            <div><label class="lbl">قالب إبداعي سريع</label><select id="imgPreset" class="inp"><option value="">تلقائي حسب الوصف</option><option value="cinematic portrait, premium editorial lighting, precise facial detail">بورتريه سينمائي</option><option value="premium sports campaign poster, dramatic stadium lighting, dynamic composition">بوستر رياضي</option><option value="luxury product photography, controlled reflections, premium studio set">تصوير منتج فاخر</option><option value="high-end fashion editorial, tasteful styling, professional studio photography">تصوير أزياء تحريري</option><option value="cinematic environment concept art, atmospheric depth, rich production design">مشهد سينمائي</option><option value="high quality anime key visual, polished line art, expressive lighting">أنمي احترافي</option><option value="premium 3D render, physically based materials, global illumination">3D واقعي</option><option value="clean educational infographic, accurate visual hierarchy, legible layout">إنفوجرافيك تعليمي</option><option value="minimal geometric brand identity, clean vector shapes">شعار Vector</option></select></div>
+            <div><label class="lbl">عدد النتائج</label><select id="imgCount" class="inp"><option value="1">صورة واحدة</option><option value="2">صورتان للمقارنة</option></select></div>
+          </div>
+          <button id="enhBtn" class="btn2 w-full">✨ حسّن الوصف باحترافية</button>
           <div class="grid grid-cols-2 gap-2">
             <div><label class="lbl">الأبعاد</label><select id="imgAspect" class="inp"><option>1:1</option><option>16:9</option><option>9:16</option><option>4:3</option><option>3:4</option></select></div>
             <div><label class="lbl">المحرك</label><select id="imgEngine" class="inp"><option value="flux">FLUX السحابي — توليد صور حقيقية (افتراضي)</option><option value="svg">رسم SVG (للرسوم والشعارات)</option><option value="sd">خادم صور خاص (Stable Diffusion WebUI)</option><option value="local">محرك ELLOOL المحلي (يتطلب تشغيله على الكمبيوتر)</option></select></div>
@@ -614,8 +618,8 @@ function isDirectImageRequest(t){
 }
 async function buildVisualPrompt(userText,style='',aspect='1:1',engine='flux',avoid='',hasReference=false,creativity=6){
   const brief=await ask(
-    'You are ELLOOL AI\'s expert Arabic/Egyptian-to-visual prompt director. Understand colloquial Egyptian Arabic, spelling variations, shorthand, mixed language and long multi-part requests. Convert the request into one production-ready English image prompt. Preserve every explicit detail and priority: exact number of people/objects, roles, actions, age-appropriate appearance, clothing, setting, time, camera/lens, angle, framing, composition, lighting, colors, mood, materials, and background. Do not add unrequested subjects, props, text, logos, or decorative clutter. Resolve only obvious typos using context; never guess a missing critical detail. If text is requested in the image, copy the exact text verbatim, preserve its language and spelling, and specify its placement and typography; never translate it. If no text is requested, explicitly say no text or watermark. If a reference image is supplied, refer to it as image 0 and follow the requested edit while preserving all aspects the user did not ask to change. Treat avoid-instructions as strict constraints. Return ONLY one clear English prompt, no explanation or markdown.',
-    'USER REQUEST (Arabic or mixed):\n'+userText+'\nSELECTED STYLE: '+(style||'Choose the best fitting visual treatment')+'\nAVOID / NEGATIVE CONSTRAINTS: '+(avoid||'None specified')+'\nREFERENCE IMAGE: '+(hasReference?'Image 0 is attached; use it as the visual reference and change only what the user requests.':'No reference image')+'\nCREATIVITY: '+creativity+'/10; higher means more visual interpretation while keeping the core request intact.\nASPECT RATIO: '+aspect+'\nIMAGE ENGINE: '+engine+'\nWrite a specific prompt for this exact request.',900
+    'You are ELLOOL AI senior visual director and production prompt engineer. Understand Egyptian Arabic, colloquial shorthand, spelling mistakes, mixed Arabic/English, indirect artistic language, and complex multi-part requests. Convert intent into one exceptionally specific, production-ready English image prompt. Build a coherent visual brief covering subject identity and count, action, natural anatomy, wardrobe, styling, environment, foreground/midground/background, visual hierarchy, composition, framing, camera angle, lens, depth of field, lighting direction and softness, realistic material response, color grade, atmosphere, and fine-detail priorities. Preserve every explicit user constraint and requested text exactly. Do not invent extra people, objects, logos, text, or story details. Select the strongest visual language for the chosen preset; when automatic, infer the most suitable medium and aesthetic. For ambiguous but non-explicit artistic, fashion, dramatic, or editorial requests, choose a tasteful non-explicit composition and neutral wardrobe/framing rather than rejecting the whole request. Preserve the core idea while keeping the result non-explicit and age-appropriate; never use reframing to disguise prohibited content. For a reference image, treat it as image 0 and change only what was requested. If text is requested, reproduce it verbatim and describe placement, typography, contrast, and legibility; otherwise specify no text or watermark. Treat avoid-instructions as hard constraints. Return ONLY one clear English prompt, no explanation or markdown.',
+    'USER REQUEST (Arabic or mixed):\n'+userText+'\nSELECTED STYLE: '+(style||'Choose the best fitting visual treatment')+'\nAVOID / NEGATIVE CONSTRAINTS: '+(avoid||'None specified')+'\nREFERENCE IMAGE: '+(hasReference?'Image 0 is attached; use it as the visual reference and change only what the user requests.':'No reference image')+'\nCREATIVITY: '+creativity+'/10; higher means richer art direction while preserving the core idea.\\nQUALITY TARGET: premium professional image, strong composition, controlled highlights and shadows, realistic textures, coherent anatomy, clean edges, intentional depth of field, refined color grading, high detail without visual clutter.\\nASPECT RATIO: '+aspect+'\\nIMAGE ENGINE: '+engine+'\\nWrite a specific prompt for this exact request.'900
   );
   if(!brief||brief.trim().length<30)throw new Error('اللول مقدرش يحوّل وصفك لتعليمات واضحة. جرّب توضح العنصر الأساسي والمشهد.');
   let finalBrief=brief.trim();
@@ -701,7 +705,7 @@ $('#enhBtn').onclick=async()=>{
   const p=$('#imgPrompt').value.trim();if(!p){toast('اكتب وصف الصورة الأول');return}
   const b=$('#enhBtn');b.disabled=true;const old=b.textContent;b.textContent='اللول بيفهم وصفك...';
   try{
-    const engine=$('#imgEngine').value||'flux',style=[$('#imgStyle').value,$('#imgCustomStyle').value.trim()].filter(Boolean).join('; '),aspect=$('#imgAspect').value,avoid=$('#imgAvoid').value.trim(),creativity=+$('#imgCreativity').value;
+    const engine=$('#imgEngine').value||'flux',style=[$('#imgPreset').value,$('#imgStyle').value,$('#imgCustomStyle').value.trim()].filter(Boolean).join('; '),aspect=$('#imgAspect').value,avoid=$('#imgAvoid').value.trim(),creativity=+$('#imgCreativity').value;
     const refined=await buildVisualPrompt(p,style,aspect,engine,avoid,!!window.elloolImageData,creativity);
     $('#imgPrompt').value=refined;
     toast('تم فهم الوصف وتحويله لبرومبت احترافي');
@@ -718,15 +722,22 @@ $('#genImgBtn').onclick=async()=>{
   if(!$('#imgEngine').value)$('#imgEngine').value='flux';
   const b=$('#genImgBtn');b.disabled=true;$('#imgStatus').textContent='اللول بيحلّل الوصف...';
   try{
-    const src=window.elloolImageData||null,engine=$('#imgEngine').value,style=[$('#imgStyle').value,$('#imgCustomStyle').value.trim()].filter(Boolean).join('; '),aspect=$('#imgAspect').value,avoid=$('#imgAvoid').value.trim(),creativity=+$('#imgCreativity').value;
+    const src=window.elloolImageData||null,engine=$('#imgEngine').value,style=[$('#imgPreset').value,$('#imgStyle').value,$('#imgCustomStyle').value.trim()].filter(Boolean).join('; '),aspect=$('#imgAspect').value,avoid=$('#imgAvoid').value.trim(),creativity=+$('#imgCreativity').value;
     let finalPrompt=p;
     if(engine!=='local')finalPrompt=await buildVisualPrompt(p,style,aspect,engine,avoid,!!src,creativity);
     else if(/[^\x00-\x7F]/.test(p))throw new Error('المحرك المحلي لا يترجم العربية تلقائيًا. استخدم FLUX السحابي أو حسّن الوصف أولاً.');
     $('#imgStatus').textContent='اللول بيولّد الصورة...';
     const creativityValue=+$('#imgCreativity').value,guidance=Number((6.5-(creativityValue-1)*0.42).toFixed(2)),seedText=$('#imgSeed').value.trim(),seed=seedText===''?undefined:Number(seedText);
     if(seedText!==''&&(!Number.isInteger(seed)||seed<0||seed>2147483647))throw new Error('رقم الصورة لازم يكون عددًا صحيحًا من 0 إلى 2147483647.');
-    const r=await genImage(finalPrompt,aspect,engine,src,{guidance,seed});
-    S.gallery.unshift({...r,prompt:p});renderGallery();$('#imgStatus').textContent='تم إنشاء الصورة بنجاح ✅';
+    const count=Math.max(1,Math.min(2,Number($('#imgCount').value)||1));
+    const results=[];
+    for(let i=0;i<count;i++){
+      $('#imgStatus').textContent=count===1?'اللول بيولّد الصورة...':`إنشاء النتيجة ${i+1} من ${count}...`;
+      const resultSeed=seed===undefined?undefined:Math.min(2147483647,seed+i);
+      const r=await genImage(finalPrompt,aspect,engine,src,{guidance,seed:resultSeed});
+      results.push({...r,prompt:p});
+    }
+    S.gallery.unshift(...results);renderGallery();$('#imgStatus').textContent=count===1?'تم إنشاء الصورة بنجاح ✅':'تم إنشاء الصورتين بنجاح ✅';
   }catch(e){$('#imgStatus').textContent='⚠️ '+e.message}
   b.disabled=false;
 };
