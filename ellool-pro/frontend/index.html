@@ -163,14 +163,16 @@ body.locked #chatIn{-webkit-text-security:disc}
           <p id="editVideoStatus" class="text-xs text-slate-400"></p>
           <video id="editedVideo" class="preview-media hidden" controls></video><a id="editedVideoDl" class="btn2 hidden block text-center" download="ellool-edited.webm">تحميل النسخة المعدلة</a>
         </div>
-        <div class="card space-y-3 h-fit border border-amber-400/30">
-          <div class="flex items-center justify-between gap-2"><h3 class="font-bold text-lg">🎥 ELLOOL Video AI</h3><span class="text-[10px] rounded-full px-2 py-1 bg-amber-500/15 text-amber-300">قيد التجهيز</span></div>
-          <p class="text-xs text-slate-300 leading-6">تم إيقاف الاتصال الخارجي السابق لأنه لم يكن يعمل بشكل موثوق، ولأنك طلبت ألا نرسل طلبات الفيديو إلى مواقع توليد أخرى.</p>
-          <div class="rounded-xl border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-300 leading-7">
-            **توليد فيديو حقيقي من وصف نصي** يحتاج نموذج فيديو يعمل على GPU. خادم ELLOOL الحالي (Vercel + Cloudflare Workers AI) لا يوفّر حالياً نموذج فيديو مجانيًا مستضافًا داخل حسابك. مش هنعرض لك زرًا يوهمك إن الفيديو بيتولد وهو مش شغال.
+        <div class="card space-y-3 h-fit border border-emerald-400/30">
+          <div class="flex items-center justify-between gap-2"><h3 class="font-bold text-lg">🎥 ELLOOL Video AI</h3><span class="text-[10px] rounded-full px-2 py-1 bg-emerald-500/15 text-emerald-300">محرك مجاني خارجي</span></div>
+          <p class="text-xs text-slate-300 leading-6">توليد فيديو AI حقيقي من وصفك، ويعمل من متصفح التابلت دون تثبيت برنامج أو كارت شاشة.</p>
+          <div class="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-3 text-xs text-slate-300 leading-7">
+            <b class="text-emerald-300">محرك Agnes المجاني — Text to Video</b><br>
+            ينشئ مقاطع فيديو حقيقية مدتها 5 أو 10 ثوانٍ. الخدمة خارجية وليست مستضافة على ELLOOL؛ تتطلب مفتاح Agnes API مجانيًا، دون بطاقة بنكية. الحصة والسرعة تتوقفان على المفتاح وتوفر الخدمة.
           </div>
-          <button id="ltxGenerateBtn" class="btn w-full opacity-50" disabled>توليد الفيديو الحقيقي غير متاح حاليًا</button>
-          <p id="ltxStatus" class="text-xs text-slate-400" role="status">المتاح حاليًا: تعديل فيديو ترفعه بنفسك، أو إنشاء مونتاج من صور AI مع توضيح أنه ليس توليد فيديو حقيقيًا.</p><div class="border-t border-slate-700 pt-3 space-y-2"><h4 class="font-bold text-sm">🎞️ توليد فيديو حقيقي على جهازك</h4><p class="text-xs text-slate-400">يستخدم نموذج Wan2.1 المحلي فقط عند وجود NVIDIA GPU مناسب (مبدئيًا 16GB VRAM أو أكثر). لا يستبدل الفيديو الحقيقي بمونتاج صور.</p><textarea id="localVideoPrompt" rows="3" class="inp" placeholder="اكتب وصف الفيديو والحركة والمشهد..."></textarea><div class="grid grid-cols-2 gap-2"><div><label class="lbl">المدة بالثواني</label><input id="localVideoSeconds" class="inp" type="number" min="1" max="5" value="3"></div><div><label class="lbl">خطوات التوليد</label><input id="localVideoSteps" class="inp" type="number" min="10" max="40" value="30"></div></div><button id="localVideoBtn" type="button" class="btn w-full">توليد فيديو حقيقي بالمحرك المحلي</button><p id="localVideoStatus" class="text-xs text-slate-400"></p><video id="localVideoOut" class="preview-media hidden" controls playsinline></video><a id="localVideoDl" class="btn2 hidden block text-center" download="ellool-local-video.mp4">تحميل الفيديو</a></div>
+          <a id="freeVideoStudio" href="https://video.lichuanyang.top/zh/demo" target="_blank" rel="noopener noreferrer" class="btn w-full block text-center">فتح استوديو توليد الفيديو الحقيقي</a>
+          <p id="ltxStatus" class="text-xs text-slate-400 leading-6" role="status">اضغط لفتح الاستوديو في تبويب جديد. أدخل مفتاح Agnes المجاني داخل موقعهم فقط؛ المفتاح لا يُرسل إلى ELLOOL ولا تحفظه في إعدادات منصتنا.</p>
+          <div class="rounded-xl border border-slate-700 bg-slate-950/50 p-3 text-xs text-slate-400 leading-6">ملاحظة خصوصية: الطلبات والوصف والصور التي ترفعها ستُرسل إلى مزوّد الخدمة الخارجي عند استخدامه. لا ترفع صورًا أو معلومات خاصة. لو احتاج المفتاح إنشاء حساب، خَلّي ولي أمرك أو مالك الحساب يساعدك في إعداده.</div>
         </div>
         <div class="card space-y-3 h-fit opacity-90">
           <h3 class="font-bold">🖼️ مونتاج الصور المتحركة (ليس توليد فيديو حقيقيًا)</h3>
