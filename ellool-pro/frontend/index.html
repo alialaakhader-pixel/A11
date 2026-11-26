@@ -59,6 +59,20 @@ body.locked #chatIn{-webkit-text-security:disc}
 #v-image .dropzone{background:rgba(2,6,23,.55);border-color:rgba(100,116,139,.65)}
 #v-image .inp{background:rgba(2,6,23,.78)}
 @media(max-width:640px){#v-image{padding:12px}#gallery .gallery-image{min-height:180px}}
+
+/* ===== Professional polish ===== */
+body{background:radial-gradient(ellipse at 12% 8%,rgba(245,158,11,.10),transparent 38%),radial-gradient(ellipse at 88% 90%,rgba(99,102,241,.14),transparent 38%),#020617!important}
+aside{background:linear-gradient(180deg,rgba(15,23,42,.92),rgba(2,6,23,.96))!important;border-inline-end:1px solid rgba(148,163,184,.12)!important;backdrop-filter:blur(18px)}
+.nav{transition:background .18s,color .18s,transform .18s}.nav:hover{transform:translateX(-3px)}
+.nav.active{box-shadow:inset 0 0 0 1px rgba(251,191,36,.25),0 6px 20px rgba(245,158,11,.10)}
+.card,.glass-head{background:rgba(15,23,42,.62)!important;border:1px solid rgba(148,163,184,.14)!important;box-shadow:0 18px 50px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.04)}
+.btn{box-shadow:0 8px 24px rgba(245,158,11,.25);transition:transform .15s,box-shadow .15s,filter .15s}.btn:hover{transform:translateY(-2px);filter:brightness(1.06);box-shadow:0 12px 30px rgba(245,158,11,.35)}.btn:active{transform:translateY(0)}
+.btn2{transition:background .15s,border-color .15s,transform .15s}.btn2:hover{transform:translateY(-1px);border-color:rgba(251,191,36,.45)}
+.inp,textarea,select{transition:border-color .15s,box-shadow .15s}.inp:focus,textarea:focus,select:focus{outline:none;border-color:#f59e0b!important;box-shadow:0 0 0 3px rgba(245,158,11,.18)}
+#msgs img,.preview-media,.gallery img{border-radius:16px;box-shadow:0 14px 40px rgba(0,0,0,.45);transition:transform .25s}.gallery img:hover,#msgs img:hover{transform:scale(1.015)}
+.brandword{letter-spacing:.02em}
+::selection{background:rgba(245,158,11,.35)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body class="locked bg-slate-950 text-slate-100 h-screen overflow-hidden">
@@ -80,7 +94,7 @@ body.locked #chatIn{-webkit-text-security:disc}
     </nav>
     <div class="px-3"><button id="newChat" class="btn w-full">+ جلسة جديدة</button></div>
     <div id="chatList" class="flex-1 overflow-y-auto p-3 space-y-1"></div>
-    <div class="p-3 border-t border-slate-800"><button id="lockBtn" class="btn2 w-full">🔒 قفل الآن</button></div>
+    <div class="p-3 border-t border-slate-800"><button id="lockBtn" class="btn2 w-full hidden">🔒 قفل الآن</button></div>
   </aside>
   <div id="ov" class="fixed inset-0 bg-black/60 z-20 hidden lg:hidden"></div>
 
@@ -295,7 +309,7 @@ body.locked #chatIn{-webkit-text-security:disc}
   </div>
 </div>
 
-<div id="authScreen" class="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4">
+<div id="authScreen" class="hidden fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4">
   <form id="authForm" class="w-full max-w-md card !bg-slate-900/95 space-y-4 shadow-2xl" novalidate>
     <div class="text-center space-y-2">
       <div class="mx-auto w-20 h-20 rounded-[26px] brandmark flex items-center justify-center"><svg viewBox="0 0 64 64" class="w-8 h-8" aria-hidden="true" fill="none"><path d="M32 5 51 16v22L32 59 13 48V16L32 5Z" stroke="white" stroke-width="2.5" opacity=".9"/><path d="M19 34c0-8 6-14 13-14s13 6 13 14" stroke="white" stroke-width="3" stroke-linecap="round"/><path d="M23 40c3 4 6 6 9 6s6-2 9-6" stroke="#99F6E4" stroke-width="3" stroke-linecap="round"/><circle cx="32" cy="16" r="3" fill="#C4B5FD"/><circle cx="16" cy="32" r="3" fill="#99F6E4"/><circle cx="48" cy="32" r="3" fill="#67E8F9"/></svg></div>
@@ -357,9 +371,8 @@ async function unlock(pass){
   let decoded;
   try{
     const o=JSON.parse(raw);
-    if(!o?.salt||!o?.iv||!o?.ct)return false;
-    S.salt=unb64(o.salt);S.key=await deriveKey(pass,S.salt);
-    decoded=JSON.parse(dec.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(o.iv)},S.key,unb64(o.ct))));
+    if(!o?.plain||!o?.data)return false;
+    S.salt=null;S.key=null;decoded=o.data;
     if(!decoded||typeof decoded!=='object')return false;
   }catch{return false}
   const d=newVault();S.v={...d,...decoded,server:{...d.server,...(decoded.server||{})},localImageEngine:{...d.localImageEngine,...(decoded.localImageEngine||{})},policy:{...d.policy,...(decoded.policy||{})}};if(S.v.imageEngine==='local'||S.v.imageEngine==='flux'||S.v.imageEngine==='schnell')S.v.imageEngine='ovh';if(!S.v.imageEngine)S.v.imageEngine='ovh';
@@ -372,12 +385,8 @@ async function unlock(pass){
   try{await saveVault()}catch(e){console.warn('Vault migration save deferred; login remains available.',e)}
   return true;
 }
-async function createFirstVault(pass){
-  if(localStorage.getItem('ellool_vault'))throw new Error('الخزنة موجودة بالفعل؛ استخدم تسجيل الدخول.');
-  S.salt=crypto.getRandomValues(new Uint8Array(16));
-  S.key=await deriveKey(pass,S.salt);
-  S.v=newVault();
-  localStorage.removeItem('ellool_gate');
+async function createFirstVault(){
+  S.salt=null;S.key=null;S.v=newVault();localStorage.removeItem('ellool_gate');
   await saveVault();
 }
 
@@ -484,12 +493,17 @@ async function genImage(prompt,aspect='1:1',engine='flux',sourceData=null,option
   }
   if(engine==='ovh'){
     if(sourceData)throw new Error('محرك OVHcloud المجاني يدعم إنشاء صورة من الوصف النصي فقط، ولا يدعم تعديل صورة مرجعية.');
-    const r=await fetch('/api/ovh-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
+    let r=await fetch('/api/ovh-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
     let d={};try{d=await r.json()}catch{}
-    if(!r.ok)throw new Error(d.error||('محرك OVHcloud رد بخطأ '+r.status));
+    if(!r.ok&&r.status!==400){
+      try{$('#imgStatus').textContent='المحرك الأساسي مشغول، أجرب المحرك الاحتياطي المجاني (قد يأخذ دقيقة)...'}catch{}
+      r=await fetch('/api/horde-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
+      d={};try{d=await r.json()}catch{}
+    }
+    if(!r.ok)throw new Error(d.error||('محرك الصور رد بخطأ '+r.status));
     if(typeof d.image!=='string'||!/^data:image\/(?:png|jpeg|webp);base64,/i.test(d.image))throw new Error('محرك OVHcloud لم يُرجع صورة صالحة.');
     await new Promise((resolve,reject)=>{const probe=new Image();probe.onload=()=>resolve();probe.onerror=()=>reject(new Error('تعذر فتح الصورة الناتجة. أعد المحاولة.'));probe.src=d.image});
-    return {url:d.image,w:1024,h:1024};
+    return {url:d.image,w:d.width||1024,h:d.height||1024};
   }
   if(engine==='schnell'){
     if(sourceData)throw new Error('FLUX.1 schnell مخصص للتوليد من النص فقط؛ استخدم FLUX.2 Klein لتعديل صورة مرجعية.');
@@ -784,7 +798,7 @@ $('#videoUpload').onchange=()=>{const f=$('#videoUpload').files?.[0];if(!f)retur
 $('#clearVideo').onclick=()=>{if(sourceVideoUrl)URL.revokeObjectURL(sourceVideoUrl);sourceVideoUrl=null;$('#videoSource').removeAttribute('src');$('#videoSource').classList.add('hidden');$('#clearVideo').classList.add('hidden');$('#videoUpload').value=''};
 $('#renderVideo').onclick=async()=>{const v=$('#videoSource'),status=$('#editVideoStatus'),btn=$('#renderVideo');if(!v.src)return toast('ارفع فيديو الأول',1);if(!v.videoWidth)return toast('انتظر تحميل الفيديو',1);btn.disabled=true;status.textContent='تجهيز التصدير...';try{const start=Math.max(0,+$('#videoStart').value||0),duration=Math.max(0,+$('#videoDuration').value||0);if(start>=v.duration)throw new Error('بداية المقطع بعد نهاية الفيديو');const end=duration?Math.min(v.duration,start+duration):v.duration;const W=Math.min(1280,v.videoWidth),H=Math.round(W*v.videoHeight/v.videoWidth),cv=document.createElement('canvas');cv.width=W;cv.height=H;const ctx=cv.getContext('2d');const stream=cv.captureStream(30);try{const audio=v.captureStream().getAudioTracks();audio.forEach(t=>stream.addTrack(t))}catch{}const mime=['video/webm;codecs=vp9','video/webm'].find(x=>MediaRecorder.isTypeSupported(x));if(!mime)throw new Error('المتصفح لا يدعم تصدير WebM');const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:6500000}),chunks=[];rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);const stopped=new Promise(r=>rec.onstop=r);const filter=$('#videoFilter').value,caption=$('#videoCaption').value.trim();v.currentTime=start;await new Promise((res,rej)=>{v.onseeked=res;v.onerror=()=>rej(new Error('تعذر قراءة الفيديو'))});await v.play();rec.start();await new Promise(resolve=>{const frame=()=>{if(v.currentTime>=end||v.ended){v.pause();return resolve()}ctx.save();ctx.filter=filter==='bw'?'grayscale(1)':filter==='vivid'?'saturate(1.5) contrast(1.08)':filter==='soft'?'brightness(1.12) saturate(.88)':filter==='cinema'?'contrast(1.12) saturate(1.12) sepia(.16)':'none';ctx.drawImage(v,0,0,W,H);ctx.filter='none';if(filter==='cinema'){ctx.fillStyle='rgba(7,18,30,.12)';ctx.fillRect(0,0,W,H)}if(caption){ctx.direction='rtl';ctx.textAlign='center';ctx.font='bold '+Math.max(22,W*.035)+'px Cairo';ctx.shadowColor='#000';ctx.shadowBlur=8;ctx.fillStyle='#fff';ctx.fillText(caption,W/2,H*.88,W*.85)}ctx.restore();requestAnimationFrame(frame);status.textContent='تصدير '+Math.round((v.currentTime-start)/(end-start)*100)+'%'};frame()});rec.stop();await stopped;const blob=new Blob(chunks,{type:mime}),url=URL.createObjectURL(blob);$('#editedVideo').src=url;$('#editedVideo').classList.remove('hidden');$('#editedVideoDl').href=url;$('#editedVideoDl').classList.remove('hidden');status.textContent='تم التصدير. الصوت يُحفظ إذا كان المتصفح يسمح بالتقاطه.'}catch(e){status.textContent='تعذر التصدير: '+e.message}finally{btn.disabled=false}};
 
-$('#localVideoBtn').onclick=async()=>{
+if($('#localVideoBtn'))$('#localVideoBtn').onclick=async()=>{
   const prompt=$('#localVideoPrompt').value.trim(),btn=$('#localVideoBtn'),status=$('#localVideoStatus');
   if(!prompt)return toast('اكتب وصف الفيديو الأول',1);
   btn.disabled=true;status.textContent='إرسال طلب الفيديو للمحرك المحلي...';$('#localVideoDl').classList.add('hidden');
@@ -986,7 +1000,7 @@ $('#lockBtn').onclick=()=>location.reload();
 
 /* ---------- قفل تلقائي ---------- */
 let idleT,idleBound=false;
-function startIdle(){
+function startIdle(){return;
   const reset=()=>{clearTimeout(idleT);idleT=setTimeout(()=>location.reload(),(S.v.lock||15)*60000)};
   if(!idleBound){idleBound=true;['mousemove','keydown','click','touchstart'].forEach(e=>document.addEventListener(e,()=>{if(!S.locked)reset()},{passive:true}))}
   reset();
@@ -1001,807 +1015,15 @@ function boot(){
 renderMsgs();
 
 async function initAuth(){
-  try{
-    let usable=false;
-    const raw=localStorage.getItem('ellool_vault');
-    if(raw){try{const v=JSON.parse(raw);usable=!!(v?.plain&&v?.data)}catch{}}
-    if(!usable){localStorage.removeItem('ellool_vault');await createFirstVault();}
-    else if(!await unlock()){localStorage.removeItem('ellool_vault');await createFirstVault();}
-    S.locked=false;document.body.classList.remove('locked');
-    $('#authScreen').classList.add('hidden');boot();
-  }catch(e){toast('تعذر تشغيل اللول: '+(e.message||e),1)}
+  let usable=false;
+  const raw=localStorage.getItem('ellool_vault');
+  if(raw){try{const v=JSON.parse(raw);usable=!!(v?.plain&&v?.data)}catch{}}
+  if(!usable){localStorage.removeItem('ellool_vault');await createFirstVault();}
+  else if(!await unlock()){localStorage.removeItem('ellool_vault');await createFirstVault();}
+  S.locked=false;document.body.classList.remove('locked');
+  $('#authScreen').classList.add('hidden');boot();
 }
-</script>
-
-<script type="module">
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.119.2';
-
-const SUPABASE_URL = 'https://vmwfwyyrqbtwthakwqft.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable__2XQ2mNTv9UbIX8on0OpvA_zYn_ygtw';
-const cloud = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  db: { schema: 'ellool' },
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
-});
-const byId = id => document.getElementById(id);
-const status = (message, bad=false) => {
-  const el=byId('cloudStatus');
-  if(el){el.textContent=message;el.className='text-xs '+(bad?'text-rose-300':'text-slate-400')}
-};
-let activeUser=null;
-function setCloudState(user){
-  activeUser=user||null;
-  const signed=!!activeUser;
-  ['cloudSync','cloudRestore','cloudLogout'].forEach(id=>{const el=byId(id);if(el)el.disabled=!signed});
-  status(signed?'متصل: '+activeUser.email:'غير متصل بالحساب السحابي.');
-}
-async function getUser(){
-  const {data,error}=await cloud.auth.getUser();
-  if(error)throw error;
-  return data.user;
-}
-async function signUp(){
-  const email=byId('cloudEmail').value.trim();
-  const password=byId('cloudPass').value;
-  if(!email||password.length<8){status('أدخل بريدًا صحيحًا وكلمة مرور من 8 أحرف على الأقل.',true);return}
-  const btn=byId('cloudSignup');btn.disabled=true;
-  try{
-    const {data,error}=await cloud.auth.signUp({email,password,options:{emailRedirectTo:'https://ellool-ai-studio.vercel.app'}});
-    if(error)throw error;
-    if(data.session){setCloudState(data.user);status('تم إنشاء الحساب وتسجيل الدخول.')}
-    else status('تم إرسال رسالة تأكيد إلى بريدك. أكّد البريد ثم سجّل الدخول.');
-  }catch(e){status('تعذر إنشاء الحساب: '+(e.message||'خطأ غير معروف'),true)}
-  finally{btn.disabled=false}
-}
-async function signIn(){
-  const email=byId('cloudEmail').value.trim();
-  const password=byId('cloudPass').value;
-  if(!email||!password){status('أدخل البريد وكلمة المرور.',true);return}
-  const btn=byId('cloudLogin');btn.disabled=true;
-  try{
-    const {data,error}=await cloud.auth.signInWithPassword({email,password});
-    if(error)throw error;
-    setCloudState(data.user);
-  }catch(e){status('تعذر تسجيل الدخول: '+(e.message||'تحقق من البريد وكلمة المرور أو تأكيد البريد.'),true)}
-  finally{btn.disabled=false}
-}
-async function syncVault(){
-  try{
-    const user=await getUser();
-    if(!user)throw new Error('سجّل الدخول للحساب السحابي أولاً.');
-    const raw=localStorage.getItem('ellool_vault');
-    if(!raw)throw new Error('لا توجد خزنة محلية لرفعها.');
-    const payload={version:1,vault:JSON.parse(raw),encrypted:true};
-    const {error}=await cloud.from('vault_backups').upsert({
-      user_id:user.id,payload,updated_at:new Date().toISOString()
-    },{onConflict:'user_id'});
-    if(error)throw error;
-    status('تم رفع نسخة احتياطية مشفّرة بنجاح.');
-    return true;
-  }catch(e){status('فشل رفع النسخة: '+(e.message||'خطأ غير معروف'),true);return false}
-}
-async function restoreVault(){
-  try{
-    const user=await getUser();
-    if(!user)throw new Error('سجّل الدخول للحساب السحابي أولاً.');
-    if(localStorage.getItem('ellool_vault')&&!confirm('استبدال الخزنة الموجودة على هذا الجهاز بالنسخة السحابية؟'))return;
-    const {data,error}=await cloud.from('vault_backups').select('payload,updated_at').eq('user_id',user.id).maybeSingle();
-    if(error)throw error;
-    if(!data?.payload?.vault)throw new Error('لا توجد نسخة احتياطية لهذا الحساب.');
-    localStorage.setItem('ellool_vault',JSON.stringify(data.payload.vault));
-    localStorage.removeItem('ellool_gate');
-    status('تمت الاستعادة. افتح اللول باستخدام كلمة مرور الخزنة الأصلية.');
-    alert('تمت استعادة النسخة المشفّرة. ستحتاج كلمة مرور الخزنة الأصلية لفتحها.');
-    location.reload();
-  }catch(e){status('تعذرت الاستعادة: '+(e.message||'خطأ غير معروف'),true)}
-}
-byId('cloudSignup')?.addEventListener('click',signUp);
-byId('cloudLogin')?.addEventListener('click',signIn);
-byId('cloudSync')?.addEventListener('click',syncVault);
-byId('cloudRestore')?.addEventListener('click',restoreVault);
-byId('cloudLogout')?.addEventListener('click',async()=>{
-  const {error}=await cloud.auth.signOut();
-  if(error)status('تعذر تسجيل الخروج: '+error.message,true);else setCloudState(null);
-});
-let syncTimer=null;
-window.elloolCloudSync=()=>{
-  clearTimeout(syncTimer);
-  syncTimer=setTimeout(async()=>{
-    if(!activeUser)return;
-    await syncVault();
-  },1800);
-};
-cloud.auth.getUser().then(({data,error})=>{
-  if(error){setCloudState(null);return}
-  setCloudState(data.user);
-});
-cloud.auth.onAuthStateChange((_event,session)=>setCloudState(session?.user||null));
-</script>
-</body>
-</htmlasync function unlock(){
-  try{
-    const raw=localStorage.getItem('ellool_vault');if(!raw)return false;
-    const parsed=JSON.parse(raw);if(!parsed?.plain||!parsed?.data||typeof parsed.data!=='object')return false;
-    const d=newVault(),decoded=parsed.data;S.key=null;S.salt=null;
-    S.v={...d,...decoded,server:{...d.server,...(decoded.server||{})},localImageEngine:{...d.localImageEngine,...(decoded.localImageEngine||{})},policy:{...d.policy,...(decoded.policy||{})}};
-    if(['local','flux','schnell'].includes(S.v.imageEngine))S.v.imageEngine='ovh';if(!S.v.imageEngine)S.v.imageEngine='ovh';
-    S.v.engine='cloudflare';S.v.engineChoiceVersion=4;
-    if(!/^https:\/\/ellool-ai-brain\.ellool-ai\.workers\.dev\/v1\/?$/i.test(S.v.server?.url||''))S.v.server={...d.server};
-    S.v.server.model='@cf/meta/llama-3.3-70b-instruct-fp8-fast';delete S.v.geminiKey;delete S.v.models;
-    try{await saveVault()}catch(e){console.warn('Vault save deferred.',e)}
-    return true;
-  }catch{return false}
-}
-async function createFirstVault(){S.key=null;S.salt=null;S.v=newVault();await saveVault();}
-/* ---------- البوابة داخل الشات ---------- */
-async function lockedSend(){
-  // Authentication is handled by the dedicated full-screen form.
-  $('#authScreen').classList.remove('hidden');
-}
-
-/* ---------- عقل اللول ---------- */
-let ENGINE=null,ENGINE_ID=null,chain=Promise.resolve();
-const queued=fn=>{const p=chain.then(fn,fn);chain=p.catch(()=>{});return p};
-async function ensureLocal(){
-  const id=S.v.localModel;if(ENGINE&&ENGINE_ID===id)return ENGINE;
-  if(!navigator.gpu)throw new Error('المتصفح ده مش بيدعم WebGPU. افتح اللول من Chrome أو Edge حديث على كمبيوتر، أو شغّل خادم خاص من الإعدادات.');
-  setStatus('بجهّز عقل اللول لأول مرة (تحميل مرة واحدة)...');
-  const wl=await import('https://esm.run/@mlc-ai/web-llm');
-  ENGINE=await wl.CreateMLCEngine(id,{initProgressCallback:r=>setStatus(r.text||'')});
-  ENGINE_ID=id;setStatus('');return ENGINE;
-}
-async function serverChat(messages,onTok,signal,max){
-  const sv=S.v.server,base=sv.url.replace(/\/+$/,'');
-  const timeoutCtl=new AbortController();
-  const abortParent=()=>timeoutCtl.abort();
-  if(signal){if(signal.aborted)timeoutCtl.abort();else signal.addEventListener('abort',abortParent,{once:true})}
-  const timer=setTimeout(()=>timeoutCtl.abort(),90000);
-  try{
-    const r=await fetch(base+'/chat/completions',{method:'POST',signal:timeoutCtl.signal,headers:{'Content-Type':'application/json',...(sv.key?{Authorization:'Bearer '+sv.key}:{})},body:JSON.stringify({model:sv.model,messages,stream:true,max_tokens:max})});
-    const rawType=r.headers.get('content-type')||'';
-    if(!r.ok){let detail='';try{const d=await r.json();detail=d.error?.message||d.message||''}catch{}throw new Error(detail||('الخادم رد بخطأ '+r.status));}
-    if(rawType.includes('application/json')){const d=await r.json();const t=d.choices?.[0]?.message?.content||d.choices?.[0]?.text||d.response||'';if(t){onTok&&onTok(t);return t}throw new Error('الخادم رجّع استجابة فارغة.');}
-    if(!r.body)throw new Error('الخادم لم يفتح قناة الرد.');
-    const rd=r.body.getReader(),dc=new TextDecoder();let buf='',out='';
-    const line=raw=>{const m=raw.trim();if(!m.startsWith('data:'))return;const d=m.slice(5).trim();if(!d||d==='[DONE]')return;try{const j=JSON.parse(d),t=j.choices?.[0]?.delta?.content||j.choices?.[0]?.message?.content||j.response||'';if(t){out+=t;onTok&&onTok(out)}}catch{}};
-    for(;;){const {done,value}=await rd.read();if(done)break;buf+=dc.decode(value,{stream:true});const lines=buf.split(/\r?\n/);buf=lines.pop()||'';for(const l of lines)line(l)}
-    if(buf.trim())line(buf);
-    if(!out.trim())throw new Error('اتصلنا بالخادم لكنه لم يرجّع نصاً. جرّب رسالة أقصر بعد قليل.');
-    return out;
-  }catch(e){if(timeoutCtl.signal.aborted&&!signal?.aborted)throw new Error('استغرق الرد أكثر من 90 ثانية. جرّب رسالة أقصر أو حاول بعد قليل.');if(e?.name==='AbortError')throw new Error('تم إيقاف الطلب.');throw e}
-  finally{clearTimeout(timer);signal?.removeEventListener('abort',abortParent)}
-}
-function brainChat(messages,onTok,max=2048){
-  return queued(async()=>{
-    if(S.v.engine==='server'||S.v.engine==='cloudflare'){S.ctl=new AbortController();return serverChat(messages,onTok,S.ctl.signal,max)}
-    try{
-      const eng=await ensureLocal();let out='';
-      const st=await eng.chat.completions.create({messages,stream:true,temperature:.7,max_tokens:max});
-      for await(const ch of st){const t=ch.choices[0]?.delta?.content||'';if(t){out+=t;onTok&&onTok(out)}}
-      return out;
-    }catch(localError){
-      if(S.v.engine!=='local')throw localError;
-      S.v.engine='cloudflare';persist();
-      setStatus('المحرك المحلي غير متاح على هذا الجهاز؛ تم التحويل تلقائياً إلى عقل اللول السحابي.');
-      S.ctl=new AbortController();
-      return serverChat(messages,onTok,S.ctl.signal,max);
-    }
-  });
-}
-const ask=(sys,user,max)=>brainChat([{role:'system',content:sys+(typeof policyText==='function'?policyText():'')},{role:'user',content:user}],null,max);
-function stopGen(){try{ENGINE&&ENGINE.interruptGenerate()}catch{}try{S.ctl&&S.ctl.abort()}catch{}}
-
-/* ---------- الرسم (SVG بيرسمه اللول) ---------- */
-const ASP={'1:1':[1024,1024],'16:9':[1280,720],'9:16':[720,1280],'4:3':[1024,768],'3:4':[768,1024]};
-const svgUrl=s=>'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(s);
-const SVG_SYS=(w,h)=>`You are an expert SVG illustrator. Output ONLY one complete SVG document, no explanation, no markdown. Use <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">. Make it rich and professional: gradient background (linearGradient/radialGradient defined in <defs>), layered shapes (background, midground, focal subject, details), harmonious palette, clear focal point, balanced composition, soft depth using semi-transparent shapes. Keep under 150 elements. Text only if requested (use font-family="Cairo, Arial, sans-serif"). No <script>, no external images or links, no foreignObject.`;
-function cleanSvg(raw,w,h){
-  const clean=DOMPurify.sanitize(raw,{USE_PROFILES:{svg:true,svgFilters:true}});
-  const doc=new DOMParser().parseFromString(clean,'image/svg+xml'),el=doc.documentElement;
-  if(!el||el.nodeName.toLowerCase()!=='svg'||doc.querySelector('parsererror'))throw new Error('الرسمة اتولدت ناقصة');
-  el.setAttribute('xmlns','http://www.w3.org/2000/svg');
-  const vb=(el.getAttribute('viewBox')||'').split(/[\s,]+/).map(Number);
-  let H=h;if(vb.length===4&&vb[2]>0&&vb[3]>0)H=Math.round(w*vb[3]/vb[2]);else el.setAttribute('viewBox',`0 0 ${w} ${h}`);
-  el.setAttribute('width',w);el.setAttribute('height',H);
-  return {svg:new XMLSerializer().serializeToString(el),w,h:H};
-}
-function svgToPng(svg,w,h){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>{const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(i,0,0,w,h);c.toBlob(b=>res(URL.createObjectURL(b)),'image/png')};i.onerror=()=>rej(new Error('تعذر تحويل الرسمة'));i.src=svgUrl(svg)})}
-async function localEngineJob(endpoint,payload,onStatus){
-  const cfg=S.v.localImageEngine||{},base=(cfg.url||'http://127.0.0.1:8000').replace(/\/+$/,'');
-  if(!cfg.key)throw new Error('أدخل مفتاح المحرك المحلي في الإعدادات أولاً.');
-  if(!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/i.test(base))throw new Error('عنوان المحرك المحلي يجب أن يكون localhost أو 127.0.0.1.');
-  const headers={'Content-Type':'application/json','X-API-Key':cfg.key};
-  const r=await fetch(base+endpoint,{method:'POST',headers,body:JSON.stringify(payload)});
-  let d={};try{d=await r.json()}catch{}
-  if(!r.ok)throw new Error(d.detail||d.error||('المحرك المحلي رد بخطأ '+r.status));
-  if(!d.job_id)throw new Error('المحرك المحلي لم يُرجع رقم المهمة.');
-  const started=Date.now();
-  while(Date.now()-started<30*60*1000){
-    await sleep(2000);
-    const jr=await fetch(base+'/api/jobs/'+encodeURIComponent(d.job_id),{headers:{'X-API-Key':cfg.key}});
-    let j={};try{j=await jr.json()}catch{}
-    if(!jr.ok)throw new Error(j.detail||('تعذر متابعة المهمة: '+jr.status));
-    if(j.status==='done')return {url:base+j.url};
-    if(j.status==='error')throw new Error(j.error||'فشل التوليد المحلي.');
-    if(onStatus)onStatus(j.status==='queued'?'في انتظار دور المحرك المحلي...':'النموذج بيولّد محليًا، وقد يستغرق وقتًا في أول تشغيل...');
-  }
-  throw new Error('التوليد استغرق أكثر من 30 دقيقة. افحص نافذة تشغيل المحرك المحلي.');
-}
-async function genImage(prompt,aspect='1:1',engine='flux',sourceData=null,options={}){
-  const [w,h]=ASP[aspect]||ASP['1:1'];
-  if(engine==='local'){
-    if(sourceData)throw new Error('التعديل بصورة مرجعية غير متاح في الإصدار المحلي الأول. احذف الصورة واستخدم وصفًا نصيًا.');
-    const result=await localEngineJob('/api/image',{prompt,width:w,height:h},msg=>$('#imgStatus').textContent=msg);
-    return {...result,w,h};
-  }
-  if(engine==='ovh'){
-    if(sourceData)throw new Error('محرك OVHcloud المجاني يدعم إنشاء صورة من الوصف النصي فقط، ولا يدعم تعديل صورة مرجعية.');
-    const r=await fetch('/api/ovh-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
-    let d={};try{d=await r.json()}catch{}
-    if(!r.ok)throw new Error(d.error||('محرك OVHcloud رد بخطأ '+r.status));
-    if(typeof d.image!=='string'||!/^data:image\/(?:png|jpeg|webp);base64,/i.test(d.image))throw new Error('محرك OVHcloud لم يُرجع صورة صالحة.');
-    await new Promise((resolve,reject)=>{const probe=new Image();probe.onload=()=>resolve();probe.onerror=()=>reject(new Error('تعذر فتح الصورة الناتجة. أعد المحاولة.'));probe.src=d.image});
-    return {url:d.image,w:1024,h:1024};
-  }
-  if(engine==='schnell'){
-    if(sourceData)throw new Error('FLUX.1 schnell مخصص للتوليد من النص فقط؛ استخدم FLUX.2 Klein لتعديل صورة مرجعية.');
-    const base=(S.v.server?.url||'https://ellool-ai-brain.ellool-ai.workers.dev/v1').replace(/\/+$/,'').replace(/\/v1$/,'');
-    const steps=Math.max(4,Math.min(8,Number(options.steps)||4));
-    const r=await fetch(base+'/v1/images/generations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,engine:'schnell',steps})});
-    let d={};try{d=await r.json()}catch{}
-    if(!r.ok)throw new Error(d.error?.message||('محرك FLUX.1 schnell رد بخطأ '+r.status));
-    if(typeof d.image!=='string'||!/^data:image\/(?:png|jpeg|webp);base64,/i.test(d.image))throw new Error('محرك FLUX.1 schnell لم يُرجع صورة صالحة.');
-    await new Promise((resolve,reject)=>{const probe=new Image();probe.onload=()=>resolve();probe.onerror=()=>reject(new Error('تعذر فتح الصورة الناتجة. أعد المحاولة.'));probe.src=d.image});
-    return {url:d.image,w,h};
-  }
-  if(engine==='flux'){
-    const base=(S.v.server?.url||'https://ellool-ai-brain.ellool-ai.workers.dev/v1').replace(/\/+$/,'').replace(/\/v1$/,'');
-    let imageData=null;if(sourceData){imageData=await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>{const cv=document.createElement('canvas');const scale=Math.min(1,512/Math.max(img.naturalWidth,img.naturalHeight));cv.width=Math.max(1,Math.round(img.naturalWidth*scale));cv.height=Math.max(1,Math.round(img.naturalHeight*scale));cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);resolve(cv.toDataURL('image/jpeg',.86))};img.onerror=()=>reject(new Error('تعذر تجهيز الصورة المرجعية'));img.src=sourceData})}
-    const payload={prompt,width:w,height:h,guidance:Math.max(1,Math.min(10,Number(options.guidance)||4)),...(Number.isInteger(Number(options.seed))&&String(options.seed).trim()!==''?{seed:Math.max(0,Math.min(2147483647,Number(options.seed)))}:{}),...(imageData?{imageData}:{})};
-    const r=await fetch(base+'/v1/images/generations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    let d={};try{d=await r.json()}catch{}
-    if(!r.ok)throw new Error(d.error?.message||('خدمة الصور ردت بخطأ '+r.status));
-    if(typeof d.image!=='string'||!/^data:image\/(?:png|jpeg|webp);base64,/i.test(d.image))throw new Error('خدمة الصور رجّعت بيانات غير صالحة للصورة. جرّب مرة أخرى.');
-    await new Promise((resolve,reject)=>{const probe=new Image();probe.onload=()=>resolve();probe.onerror=()=>reject(new Error('تم إنشاء النتيجة لكن المتصفح لم يستطع فك ملف الصورة. أعد المحاولة.'));probe.src=d.image});
-    return {url:d.image,w,h};
-  }
-  if(engine==='sd'){
-    const base=(S.v.imgServer||'').replace(/\/+$/,'');if(!base)throw new Error('حط عنوان خادم الصور الخاص في الإعدادات');
-    const endpoint=sourceData?'/sdapi/v1/img2img':'/sdapi/v1/txt2img';const payload={prompt,steps:28,width:Math.min(1024,Math.round(w/8)*8),height:Math.min(1024,Math.round(h/8)*8)};if(sourceData)payload.init_images=[sourceData.split(',')[1]],payload.denoising_strength=.55;const r=await fetch(base+endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    if(!r.ok)throw new Error('خادم الصور رد بخطأ '+r.status);
-    const d=await r.json();if(!d.images?.[0])throw new Error('خادم الصور مرجعش صورة');
-    return {url:'data:image/png;base64,'+d.images[0],w,h};
-  }
-  let lastErr;
-  for(let i=0;i<2;i++){
-    try{
-      setStatus('اللول بيرسم...');
-      const raw=await ask(SVG_SYS(w,h),'Draw: '+prompt,2600);
-      const m=raw.match(/<svg[\s\S]*<\/svg>/i);if(!m)throw new Error('الرسمة اتولدت ناقصة');
-      const c=cleanSvg(m[0],w,h);setStatus('');
-      return {url:svgUrl(c.svg),svg:c.svg,w:c.w,h:c.h};
-    }catch(e){lastErr=e}
-  }
-  setStatus('');throw lastErr;
-}
-
-/* ---------- التنقل ---------- */
-const TITLES={chat:'المحادثة والكود',image:'استوديو الصور',video:'استوديو الفيديو',connect:'الربط مع المواقع',keys:'مفاتيح اللول',settings:'الإعدادات والعقل'};
-function go(v){
-  $$('.view').forEach(x=>x.classList.toggle('active',x.id==='v-'+v));
-  $$('.nav').forEach(x=>x.classList.toggle('active',x.dataset.go===v));
-  $('#title').textContent=v==='chat'?(curChat()?.title||TITLES.chat):TITLES[v];
-  closeSide();
-  if(v==='connect')renderConn();if(v==='keys')renderKeys();if(v==='settings')fillSettings();if(v==='image'){ $('#imgEngine').value=S.v.imageEngine||'ovh';renderGallery();}
-}
-const openSide=()=>{$('#side').classList.remove('translate-x-full');$('#ov').classList.remove('hidden')};
-const closeSide=()=>{$('#side').classList.add('translate-x-full');$('#ov').classList.add('hidden')};
-$('#menuBtn').onclick=openSide;$('#ov').onclick=closeSide;
-$$('.nav').forEach(b=>b.onclick=()=>go(b.dataset.go));
-
-/* ---------- المحادثة ---------- */
-const curChat=()=>S.locked?{id:'tmp',title:'اللول',messages:S.tmp}:S.v.chats.find(c=>c.id===S.cur);
-function newChat(){const c={id:'c'+Date.now(),title:'جلسة جديدة',messages:[]};S.v.chats.unshift(c);S.cur=c.id;persist();renderChats();renderMsgs();go('chat')}
-function renderChats(){
-  $('#chatList').innerHTML=S.v.chats.map(c=>`<div data-id="${c.id}" class="flex items-center justify-between p-2.5 rounded-xl text-xs cursor-pointer border ${c.id===S.cur?'bg-amber-500/15 border-amber-500/40 text-amber-300':'border-transparent text-slate-400 hover:bg-slate-800'}"><span class="truncate">${esc(c.title)}</span><button data-del="${c.id}" class="opacity-60 hover:opacity-100 hover:text-rose-400">🗑</button></div>`).join('');
-  $$('#chatList [data-id]').forEach(el=>el.onclick=e=>{
-    if(e.target.dataset.del){S.v.chats=S.v.chats.filter(c=>c.id!==e.target.dataset.del);if(!S.v.chats.length)return newChat();S.cur=S.v.chats[0].id;persist();renderChats();renderMsgs();return}
-    S.cur=el.dataset.id;renderChats();renderMsgs();go('chat');
-  });
-}
-const md=t=>DOMPurify.sanitize(marked.parse(t||''));
-const DOTS='<span class="dot text-amber-400">●</span> <span class="dot text-amber-400" style="animation-delay:.2s">●</span> <span class="dot text-amber-400" style="animation-delay:.4s">●</span>';
-function renderMsgs(){
-  const c=curChat();const box=$('#msgs');const keep=box.scrollHeight-box.scrollTop-box.clientHeight<80;box.innerHTML='';
-  if(!c)return;
-  if(!c.messages.length){box.innerHTML=`<div class="h-full flex flex-col items-center justify-center text-center space-y-3"><div class="w-16 h-16 rounded-3xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-slate-950 text-3xl font-black">ل</div><h3 class="text-xl font-black">${S.locked?'اللول':'أنا اللول. اسألني أي حاجة.'}</h3><p class="text-xs text-slate-400">${S.locked?'':'أكتب كود احترافي، أرسم صور، أحلل، وأربط مواقعك.'}</p></div>`}
-  c.messages.forEach((m,i)=>{
-    const d=document.createElement('div');d.className='flex max-w-4xl mx-auto '+(m.role==='user'?'justify-end':'justify-start');
-    if(m.role==='user'){
-      d.innerHTML=`<div class="bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-2xl rounded-tl-none p-3 text-sm max-w-[88%] whitespace-pre-wrap leading-relaxed">${esc(m.text)}</div>`;
-    }else{
-      const waiting=S.busy&&i===c.messages.length-1&&!m.text;
-      d.innerHTML=`<div class="bg-slate-900 border border-slate-800 rounded-2xl rounded-tr-none p-4 text-sm max-w-[92%] min-w-0 md"><div class="body">${waiting?DOTS:md(m.text)}</div></div>`;
-      if(m.imagePreview){const im=document.createElement('img');im.src=m.imagePreview;im.alt='الصورة التي أنشأها اللول';im.loading='lazy';im.className='mt-3 max-w-full rounded-xl border border-slate-700';im.style.maxHeight='520px';d.querySelector('.bg-slate-900').appendChild(im)}
-      if(!waiting){decorate(d.querySelector('.body'),c);const actions=document.createElement('div');actions.className='flex flex-wrap gap-2 mt-3 pt-2 border-t border-slate-700/70 text-[11px] text-slate-400';actions.innerHTML='<button data-act="copy" class="hover:text-white">نسخ</button><button data-act="retry" class="hover:text-white">إعادة الرد</button><button data-act="good" class="hover:text-emerald-300">مفيد</button><button data-act="bad" class="hover:text-rose-300">غير مفيد</button>';actions.querySelector('[data-act="copy"]').onclick=()=>{navigator.clipboard?.writeText(m.text).then(()=>toast('اتنسخ الرد')).catch(()=>toast('تعذر النسخ',1))};actions.querySelector('[data-act="retry"]').onclick=()=>{if(S.busy)return; c.messages.splice(i);persist();reply(c)};actions.querySelector('[data-act="good"]').onclick=()=>toast('شكراً على تقييمك');actions.querySelector('[data-act="bad"]').onclick=()=>toast('وصل تقييمك');d.querySelector('.bg-slate-900').appendChild(actions)}
-    }
-    box.appendChild(d);
-  });
-  if(keep||!S.busy)box.scrollTop=box.scrollHeight;
-}
-function decorate(el,c){
-  el.querySelectorAll('pre').forEach(pre=>{
-    const code=pre.querySelector('code');
-    const lang=(code?.className.match(/language-([\w-]+)/)||[])[1]||'';
-    if(lang==='ellool-call'){
-      let j;try{j=JSON.parse(code.textContent)}catch{return}
-      const d=document.createElement('div');d.className='card my-2 text-xs space-y-2';
-      d.innerHTML=`<div>🔌 طلب ربط: <b>${esc(j.connector)}</b> — <span dir="ltr">${esc(j.method||'GET')} ${esc(j.path||'/')}</span></div><button class="btn2">نفّذ بموافقتي</button>`;
-      d.querySelector('button').onclick=()=>runCallFromChat(j,c);pre.replaceWith(d);return;
-    }
-    const txt=code?code.textContent:pre.textContent;
-    if(code&&window.hljs)try{hljs.highlightElement(code)}catch{}
-    const box=document.createElement('div');box.className='codebox';
-    box.innerHTML=`<div class="codebar"><span>${esc(lang||'code')}</span><span><button data-a="copy">نسخ</button><button data-a="dl">تحميل</button>${lang==='html'?'<button data-a="run">معاينة</button>':''}</span></div>`;
-    pre.replaceWith(box);box.appendChild(pre);
-    box.onclick=e=>{const a=e.target.dataset&&e.target.dataset.a;
-      if(a==='copy'){navigator.clipboard.writeText(txt);toast('اتنسخ')}
-      if(a==='dl')dl(URL.createObjectURL(new Blob([txt])),'ellool.'+(EXT[lang]||'txt'));
-      if(a==='run'){openModal('معاينة','<iframe sandbox="allow-scripts" class="w-full h-[70vh] bg-white rounded-xl"></iframe>');$('#mBody iframe').srcdoc=txt}};
-    if(lang==='svg'&&/<\/svg>\s*$/i.test(txt.trim())){
-      try{
-        const r=cleanSvg(txt,1024,1024);const w=document.createElement('div');w.className='my-2';
-        w.innerHTML=`<img src="${svgUrl(r.svg)}" class="rounded-xl border border-slate-800 max-w-full"><button class="btn2 mt-1">⬇️ PNG</button>`;
-        w.querySelector('button').onclick=async()=>dl(await svgToPng(r.svg,r.w,r.h),'ellool.png');
-        box.after(w);
-      }catch{}
-    }
-  });
-}
-const policyText=()=>{const p=S.v.policy||{};const ageLabel=({under18:'أقل من 18 سنة','18to30':'من 18 إلى 30 سنة',over30:'أكبر من 30 سنة'})[p.ageGroup]||'غير محددة';return `\n\nالفئة العمرية المختارة للحساب: ${ageLabel}. هذا اختيار ذاتي غير موثّق ولا يُعد تحققاً من العمر. اضبط مستوى الشرح والسياق بما يناسب الفئة المختارة، ولا تعتبر اختيار فئة أكبر سناً تصريحاً بتجاوز حماية القُصّر. لا تنشئ محتوى إباحياً صريحاً أو محتوى يستغل القُصّر.\nقاعدة تقليل الرفض الخاطئ: لا ترفض موضوعاً لمجرد حساسيته؛ ميّز بين الطلب التعليمي/الطبي/التاريخي/الفني المسموح وبين الجزء الضار أو الصريح غير المسموح. أجب عن الجزء الآمن مباشرة، وإذا لزم الرفض فليكن محدداً مع بديل مفيد.\nإعدادات أسلوب المستخدم (ضمن حدود الأمان الأساسية): مستوى المرونة ${p.openness??85}/100؛ القيمة الأعلى تعني تقليل الرفض غير الضروري وتحسين فهم السياق، ولا تعني إزالة ضوابط السلامة. الإبداع: ${p.allowCreative?'مسموح':'غير مطلوب'}. كتابة الكود: ${p.allowCode?'مسموحة':'غير مطلوبة'}. الأدوار الخيالية الآمنة: ${p.allowRoleplay?'مسموحة':'غير مطلوبة'}. الربطات الخارجية: ${p.allowWeb?'يمكن اقتراحها مع طلب موافقة صريحة':'لا تستخدم ربطاً خارجياً'}. قواعد مسموحة إضافية: ${p.customAllow||'لا يوجد'}. قيود إضافية: ${p.customDeny||'لا يوجد'}. لا تتجاوز قواعد الأمان أو القوانين أو تعليمات مزود النموذج.`};
-const COGNITIVE_CORE=[
-'\n\n### نواة الفهم والاستدلال للول',
-'أنت مساعد عربي قوي، ومهمتك فهم مقصد المستخدم لا مجرد مطابقة الكلمات. افهم اللهجة المصرية والعربية العامية والاختصارات والأخطاء الإملائية والكتابة الصوتية، ولا تطلب إعادة الصياغة لمجرد وجود أخطاء.',
-'قبل الإجابة، حدّد داخلياً: ما الهدف الحقيقي؟ ما السياق السابق المرتبط؟ ما القيود؟ وما شكل النتيجة التي يريدها المستخدم؟ لا تعرض هذه الخطوات الداخلية.',
-'اعتبر الرسائل القصيرة مثل «كمل»، «اعمل كده»، «نفس المشكلة»، «خلص» مرتبطة بأقرب سياق سابق مناسب. لا تبدأ من الصفر ولا تطلب تفاصيل سبق أن ذكرها المستخدم.',
-'إذا كان الطلب واضحاً نفّذه مباشرة. إذا كان يحتمل أكثر من معنى ويغيّر ذلك النتيجة، اسأل سؤالاً واحداً محدداً. إذا كان الغموض بسيطاً، اذكر افتراضك باختصار ثم أكمل.',
-'اربط المعلومات عبر المحادثة الحالية، وتذكّر أسماء الأشياء والقرارات والمتطلبات التي ظهرت فيها. لا تدّعِ تذكّر محادثات أخرى أو تخزين ذاكرة دائمة ما لم تكن متاحة فعلاً.',
-'حلّل المسائل متعددة الخطوات بتأنٍ: قسّم المشكلة، افحص الافتراضات، قارن البدائل، اختبر الاتساق، ثم أعطِ نتيجة عملية. لا تعرض سلسلة التفكير الخاصة؛ اعرض خلاصة مفهومة وأسباباً موجزة.',
-'في البرمجة: افهم بنية المشروع والملفات الموجودة قبل اقتراح تعديل، حافظ على التوافق، عالج الأخطاء والحالات الطرفية، ولا تدّعِ تشغيل أو اختبار أو نشر شيء لم يحدث فعلاً.',
-'في الأسئلة المعرفية: ميّز بين الحقيقة والاستنتاج والتخمين. لا تخترع مصادر أو أرقاماً أو قدرات. إذا كانت المعلومة حديثة أو تحتاج تحققاً، صرّح بالحاجة إلى مصدر حديث بدلاً من التخمين.',
-'اكتب باللهجة المصرية الطبيعية عندما يستخدمها المستخدم، وبالعربية الواضحة في الشرح التعليمي. كن ودوداً ومباشراً، وابدأ بالجواب أو التنفيذ، وتجنب التكرار والحشو.',
-'عند عدم فهم جزء من الطلب، لا تتظاهر بالفهم. حدّد الجزء الغامض فقط. وعند اكتشاف خطأ في إجابتك، صحّحه بوضوح دون دفاع أو تبرير زائد.',
-'لا توافق المستخدم لمجرد إرضائه؛ صحّح المعلومة بلطف مع توضيح السبب. لا تعد بنتيجة مستحيلة ولا تصف نفسك بذكاء خارق أو استقلال غير حقيقي.',
-'قبل إرسال الرد، راجع أنه يجيب عن المطلوب كله، ويتبع السياق، ولا يحتوي تناقضاً أو ادعاءً غير متحقق.'
-].join('\n');
-
-const KNOWLEDGE_CORE=[
-'\n\n### المكتبة المعرفية الأساسية المدمجة',
-'هذه مكتبة تأسيسية متعددة التخصصات وليست موسوعة كاملة أو اتصالاً تلقائياً بالإنترنت. استخدم معرفتك العامة مع القواعد التالية، ولا تدّعِ أن كل معلومة مخزنة محلياً. عند نقص معلومة أو احتمال تقادمها، وضّح ذلك واطلب مرجعاً أو استخدم أداة بحث إذا كانت متاحة فعلاً.',
-'الرياضيات: اشرح التعريف ثم الفكرة ثم خطوات الحل. راجع الوحدات والإشارات ومجال التعريف. أساسيات: a²+b²=c² للمثلث القائم؛ مساحة المستطيل=الطول×العرض؛ مساحة المثلث=½×القاعدة×الارتفاع؛ مساحة الدائرة=πr² ومحيطها=2πr؛ حجم المنشور=مساحة القاعدة×الارتفاع؛ المتوسط الحسابي=مجموع القيم/عددها؛ الاحتمال=الحالات الملائمة/الحالات الممكنة المتساوية الإمكان. في التفاضل: مشتقة xⁿ هي n xⁿ⁻¹، ومشتقة sin x هي cos x، ومشتقة cos x هي -sin x. التكامل عكس الاشتقاق مع ثابت تكامل.',
-'الفيزياء: ابدأ بتحديد المعطيات والمطلوب والرسم والوحدات ثم القانون والتعويض. الحركة المنتظمة v=Δx/Δt؛ العجلة a=Δv/Δt؛ القوة المحصلة F=ma؛ الوزن W=mg؛ الشغل W=Fd cosθ؛ القدرة P=W/t؛ الطاقة الحركية K=½mv²؛ طاقة الوضع قرب سطح الأرض U=mgh؛ كمية الحركة p=mv؛ الدفع J=FΔt=Δp؛ الكثافة ρ=m/V؛ الضغط P=F/A؛ قانون أوم V=IR؛ القدرة الكهربائية P=VI=I²R=V²/R؛ الشحنة Q=It؛ الموجة v=fλ. فرّق بين الكميات المتجهة والقياسية، وبين الكتلة والوزن، ولا تخلط الوحدات.',
-'الكيمياء: الذرة تتكون من نواة (بروتونات موجبة ونيوترونات متعادلة) وإلكترونات؛ العدد الذري=عدد البروتونات، والعدد الكتلي=بروتونات+نيوترونات. الروابط الأساسية أيونية وتساهمية وفلزية. احفظ اتزان المعادلات بحفظ عدد ذرات كل عنصر والشحنة. كمية المادة n=m/M؛ التركيز المولاري C=n/V باللتر؛ pH=-log[H⁺] للمحاليل المائية المخففة. الأكسدة فقد إلكترونات والاختزال اكتسابها. لا تقدم تجارب خطرة أو خلط مواد مؤذية كتعليمات تنفيذية.',
-'الأحياء: الخلية وحدة البناء والوظيفة؛ الغشاء ينظم مرور المواد؛ النواة تحفظ DNA؛ الريبوسومات تصنع البروتين؛ الميتوكوندريا تنتج معظم ATP بالتنفس الهوائي؛ البلاستيدات الخضراء تقوم بالبناء الضوئي في النباتات. DNA يحمل المعلومات الوراثية، والجين جزء منه، والكروموسوم حزمة DNA وبروتينات. البناء الضوئي يحول طاقة الضوء إلى طاقة كيميائية، والتنفس الخلوي يحرر الطاقة من الجزيئات. اشرح أجهزة الجسم والوراثة والبيئة بلغة علمية مناسبة، وميّز بين المعلومة المدرسية والتفاصيل البحثية.',
-'علوم الأرض والفلك: الفصول تنتج أساساً من ميل محور الأرض مع دورانها حول الشمس لا من قرب الأرض وبعدها وحدهما؛ أطوار القمر تنتج من تغير الجزء المضاء المرئي؛ الكسوف والخسوف يتطلبان اصطفاف الأجرام. فرّق بين الطقس والمناخ، وبين النجم والكوكب والقمر، واذكر أن النماذج العلمية تتطور مع الأدلة.',
-'علوم الحاسوب: البيانات تمثل حقائق، والخوارزمية خطوات محددة لحل مشكلة، والبرنامج تنفيذ لخوارزمية بلغة برمجة. المتغير يخزن قيمة؛ الشرط يختار مساراً؛ الحلقة تكرر؛ الدالة تجمع منطقاً قابلاً لإعادة الاستخدام. هياكل شائعة: مصفوفة، قائمة، مكدس، طابور، جدول تجزئة، شجرة، رسم بياني. تعقيد Big-O يصف نمو الزمن/الذاكرة لا زمناً ثابتاً. اشرح أمثلة قابلة للتشغيل واذكر اللغة والإصدار والافتراضات.',
-'تطوير البرمجيات والويب: HTML للبنية، CSS للمظهر، JavaScript للسلوك؛ HTTP يحدد تبادل الطلبات والاستجابات؛ API واجهة للتواصل؛ JSON صيغة تبادل بيانات؛ SQL للاستعلام عن قواعد البيانات. افصل الواجهة عن الخادم وقاعدة البيانات، تحقق من المدخلات على الخادم، استخدم أقل صلاحية، لا تضع الأسرار في كود الواجهة، لا تخزن كلمات المرور كنص صريح، واستخدم HTTPS. عند تصحيح مشروع اطلب رسالة الخطأ والسياق الضروري ولا تدّعِ اختبار الكود دون تشغيله.',
-'الذكاء الاصطناعي: تعلم الآلة يستخلص أنماطاً من البيانات؛ التعلم الخاضع للإشراف يستخدم أمثلة ذات تسميات، وغير الخاضع لاكتشاف البنية، والتعلم المعزز يعتمد مكافآت. النموذج اللغوي يتنبأ بتتابعات النص ولا يضمن صحة كل إجابة. التوليد والاسترجاع والضبط الدقيق مفاهيم مختلفة. قيّم الدقة والتحيز والخصوصية والأمان، ولا تصف النموذج بأنه واعٍ أو معصوم.',
-'الاقتصاد والمال: العرض والطلب يؤثران في الأسعار مع عوامل أخرى؛ التضخم ارتفاع عام ومستمر في مستوى الأسعار؛ الفائدة تكلفة الاقتراض أو عائد الادخار؛ الميزانية تقارن الدخل بالمصروفات؛ الفائدة المركبة تعيد احتساب العائد على الأصل والعوائد السابقة. وضّح الافتراضات والمخاطر ولا تقدم ضمانات ربح أو توصيات مالية شخصية مؤكدة.',
-'التاريخ والجغرافيا والسياسة: افصل التسلسل الزمني عن التفسير؛ قارن المصادر الأولية والثانوية؛ لا تختزل حدثاً معقداً في سبب واحد؛ ميّز الحدود السياسية عن الجغرافية، والرأي عن الوقائع. القوانين والسياسات والحدود والأرقام السكانية قابلة للتغير وتحتاج مصدراً حديثاً.',
-'اللغة والكتابة: افهم السياق والنبرة والجمهور والغرض قبل الصياغة. في الترجمة حافظ على المعنى لا الترتيب الحرفي فقط، واذكر المصطلحات متعددة المعاني. لا تنسب اقتباساً أو عملاً إلى شخص دون تحقق.',
-'منهج التحقق: رتّب الأدلة حسب موثوقيتها، وفضّل المصادر الرسمية والأبحاث المحكمة والكتب التعليمية المعروفة. ابحث عن تاريخ النشر وطريقة القياس والتعاريف. إذا اختلفت المصادر فاعرض موضع الاختلاف ولا تخترع إجماعاً. الأرقام التقريبية تُوسم بأنها تقريبية.',
-'التعليم: ابدأ بمستوى المتعلم، ثم شرح مبسط، مثال محلول، تدريب قصير، وتصحيح الخطأ الشائع. لا تقفز إلى النتيجة في المسائل؛ اشرح خطوات قابلة للمراجعة. اسأل عن الصف أو المنهج فقط عندما يؤثر اختلاف المنهج في الإجابة.',
-'الصحة والقانون والسلامة: قدّم معلومات عامة تعليمية فقط، لا تشخّص ولا تستبدل الطبيب أو المحامي. في الطوارئ وجّه لطلب مساعدة بشرية مختصة. لا تقدم إرشادات لإيذاء النفس أو الآخرين أو تنفيذ أعمال خطرة.',
-'قاعدة شاملة: إذا لم تعرف فلا تخمّن. اذكر ما تعرفه وما لا تعرفه، وقدّم طريقة عملية للتحقق. لا تخلط بين المعلومة الثابتة والرأي والتوقع، ولا تذكر مرجعاً لم تطّلع عليه.'
-].join('\n');
-
-const sysFor=()=>S.v.system+COGNITIVE_CORE+KNOWLEDGE_CORE+policyText()+['','\n\nعمق الاستجابة: أجب بسرعة وباختصار مع الحفاظ على الدقة.','\n\nعمق الاستجابة: اربط السؤال بآخر سياق ذي صلة، استخرج المقصود والقيود، ثم أجب بخطوات واضحة دون إطالة.','\n\nعمق الاستجابة: حلّل الطلب متعدد الأجزاء، اربط الإشارات والضمائر والرسائل السابقة، احتفظ بالقرارات والقيود المهمة، افحص التناقضات والحالات الطرفية، ثم قدّم نتيجة متكاملة وعملية. لا تعرض التفكير الداخلي.'][S.v.policy?.depth||2]+'\n\nالربطات المتاحة: '+(S.v.connectors.map(c=>c.name).join('، ')||'لا يوجد')+MODES[$('#mode').value];
-function isDirectImageRequest(t){
-  const x=String(t||'').trim().toLowerCase();
-  if(/^(ازاي|كيف|ليه|لماذا|ما هو|ماهي|اشرح|علمني|علّمني)/.test(x))return false;
-  return /(?:اعمل|اعملي|اصنع|اصنعي|صمم|صممي|ارسم|ارسملي|ارسمى|ولد|ولّد|انشئ|أنشئ|اعمللي|اعملى|جهزلي|جهز|create|generate|draw|design|make)\s*(?:لي|ل[ي]?|a|an|me)?\s*(?:صورة|صوره|تصميم|بوستر|لوجو|شعار|رسمة|رسمه|خلفية|خلفيه|غلاف|thumbnail|image|picture|poster|logo|illustration|wallpaper|cover)/i.test(x)
-    || /(?:صورة|صوره|بوستر|لوجو|شعار|رسمة|خلفية|غلاف|image|picture|poster|logo|wallpaper)\s*(?:عن|لـ|ل|بـ|of|about)\s*/i.test(x)&&/(?:عايز|عاوز|محتاج|ممكن|please|want|need|make|create)/i.test(x);
-}
-async function buildVisualPrompt(userText,style='',aspect='1:1',engine='flux',avoid='',hasReference=false,creativity=6){
-  const brief=await ask(
-    'You are ELLOOL AI senior visual director and production prompt engineer. Understand Egyptian Arabic, colloquial shorthand, spelling mistakes, mixed Arabic/English, indirect artistic language, and complex multi-part requests. Convert intent into one exceptionally specific, production-ready English image prompt. Build a coherent visual brief covering subject identity and count, action, natural anatomy, wardrobe, styling, environment, foreground/midground/background, visual hierarchy, composition, framing, camera angle, lens, depth of field, lighting direction and softness, realistic material response, color grade, atmosphere, and fine-detail priorities. Preserve every explicit user constraint and requested text exactly. Do not invent extra people, objects, logos, text, or story details. Select the strongest visual language for the chosen preset; when automatic, infer the most suitable medium and aesthetic. For ambiguous or borderline but non-explicit artistic, fashion, dramatic, or editorial requests, first interpret the benign creative intent and use safe creative reframing: preserve the central subject, mood, styling, and visual idea while choosing a clearly non-explicit, age-appropriate composition. Do not over-refuse merely because wording is dramatic, fashionable, or indirect. If a request clearly asks for disallowed sexual, exploitative, or harmful content, do not generate it and do not disguise it through euphemisms; offer a genuinely safe nearby concept instead. Repeated attempts never weaken safety requirements. For a reference image, treat it as image 0 and change only what was requested. If text is requested, reproduce it verbatim and describe placement, typography, contrast, and legibility; otherwise specify no text or watermark. Treat avoid-instructions as hard constraints. Return ONLY one clear English prompt, no explanation or markdown.',
-    'USER REQUEST (Arabic or mixed):\n'+userText+'\nSELECTED STYLE: '+(style||'Choose the best fitting visual treatment')+'\nAVOID / NEGATIVE CONSTRAINTS: '+(avoid||'None specified')+'\nREFERENCE IMAGE: '+(hasReference?'Image 0 is attached; use it as the visual reference and change only what the user requests.':'No reference image')+'\nCREATIVITY: '+creativity+'/10; higher means richer art direction while preserving the core idea.\\nQUALITY TARGET: premium professional image, strong composition, controlled highlights and shadows, realistic textures, coherent anatomy, clean edges, intentional depth of field, refined color grading, high detail without visual clutter.\\nASPECT RATIO: '+aspect+'\\nIMAGE ENGINE: '+engine+'\\nWrite a specific prompt for this exact request.',1100
-  );
-  if(!brief||brief.trim().length<30)throw new Error('اللول مقدرش يحوّل وصفك لتعليمات واضحة. جرّب توضح العنصر الأساسي والمشهد.');
-  let finalBrief=brief.trim();
-  if(finalBrief.length>1900){
-    finalBrief=await ask('Compress this image prompt to at most 1900 characters. Preserve all critical subjects, counts, actions, visual constraints, requested exact text, and reference-image edit instructions. Remove repetition only. Return only the compressed prompt.','PROMPT:\n'+finalBrief,500);
-    finalBrief=String(finalBrief||'').trim();
-  }
-  if(finalBrief.length>2000)throw new Error('الوصف طويل جداً بعد التحسين. اختصره قليلاً أو احذف بعض التفاصيل.');
-  return finalBrief;
-}
-async function createImageFromChat(c,userText){
-  S.busy=true;$('#stopBtn').classList.remove('hidden');
-  const engine=S.v.imageEngine||'flux';
-  const m={role:'model',text:engine==='local'?'فهمت طلب الصورة. ببدأ التوليد على محرك ELLOOL المحلي…':'بحلّل وصفك الأول وبحوّله لتعليمات بصرية دقيقة…'};c.messages.push(m);renderMsgs();
-  try{
-    let prompt=userText;
-    const aspect=/(?:ريلز|reels|تيك.?توك|tiktok|ستوري|story|عمودي|طولي|9:16)/i.test(userText)?'9:16':/(?:يوتيوب|youtube|بانر|banner|غلاف قناة|thumbnail|16:9|عرضي)/i.test(userText)?'16:9':'1:1';
-    if(engine!=='local'){
-      prompt=await buildVisualPrompt(userText,'',aspect,engine);
-      setStatus('اللول بيولّد الصورة…');
-    }
-    const r=await genImage(prompt,aspect,engine);
-    S.gallery.unshift({...r,prompt:userText});
-    Object.defineProperty(m,'imagePreview',{value:r.url,enumerable:false,configurable:true});
-    m.text='اتفضل، حولت وصفك للصورة. هتلاقيها كمان في استوديو الصور.';
-    renderGallery();
-  }catch(e){m.text='مش قادر أنفذ الوصف بالشكل المطلوب: '+e.message}
-  S.busy=false;$('#stopBtn').classList.add('hidden');setStatus('');renderMsgs();persist();
-}
-async function send(){
-  if(S.locked)return lockedSend();
-  if(S.busy)return;
-  const t=$('#chatIn').value.trim();if(!t)return;
-  const c=curChat();c.messages.push({role:'user',text:t});
-  if(c.messages.length===1){c.title=t.slice(0,28);renderChats()}
-  $('#chatIn').value='';
-  if(isDirectImageRequest(t)){await createImageFromChat(c,t);return}
-  await reply(c);
-}
-async function reply(c){
-  S.busy=true;$('#stopBtn').classList.remove('hidden');
-  const m={role:'model',text:''};c.messages.push(m);renderMsgs();
-  let tm=0;const tick=()=>{if(tm)return;tm=setTimeout(()=>{tm=0;renderMsgs()},200)};
-  try{
-    const hist=c.messages.slice(0,-1).slice(-24).map(x=>({role:x.role==='model'?'assistant':'user',content:(x.text||' ').slice(0,5000)}));
-    setStatus(ENGINE||S.v.engine==='server'?'بيفكر...':'');
-    const out=await brainChat([{role:'system',content:sysFor()},...hist],o=>{m.text=o;tick()});
-    m.text=out.trim()?out:'…';
-  }catch(e){m.text=(m.text?m.text+'\n\n':'')+'⚠️ '+e.message}
-  clearTimeout(tm);S.busy=false;$('#stopBtn').classList.add('hidden');setStatus('');renderMsgs();persist();
-}
-async function runCallFromChat(j,c){
-  if(!confirm(`تنفيذ الطلب ده؟\n${j.method||'GET'} ${j.connector}${j.path||'/'}\n${j.body?JSON.stringify(j.body).slice(0,300):''}`))return;
-  let out;try{out=await callConn(j.connector,j.method||'GET',j.path||'/',j.body)}catch(e){out='خطأ: '+e.message}
-  c.messages.push({role:'user',text:'نتيجة الربط:\n'+FENCE+'\n'+out+'\n'+FENCE});await reply(c);
-}
-$('#sendBtn').onclick=send;$('#stopBtn').onclick=stopGen;
-$('#chatIn').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}};
-$('#newChat').onclick=newChat;
-$('#quickImage').onclick=()=>{const p=$('#chatIn').value.trim();go('image');if(p)$('#imgPrompt').value=p;};
-$('#quickVideo').onclick=()=>{const p=$('#chatIn').value.trim();go('video');if(p)$('#scTopic').value=p;};
-$('#quickCode').onclick=()=>{$('#mode').value='code';$('#chatIn').focus();toast('وضع المبرمج جاهز')};
-
-/* ---------- لوحة التحكم السرية ---------- */
-function openControlPanel(){const p={openness:55,depth:2,allowCreative:true,allowCode:true,allowRoleplay:true,allowWeb:false,ageGroup:'under18',customAllow:'',customDeny:'',...(S.v.policy||{})};$('#ageGroup').value=p.ageGroup||'under18';$('#openness').value=p.openness;$('#reasoningDepth').value=p.depth;$('#depthValue').textContent=['','سريع','متوازن','تحليل أعمق'][p.depth]||'متوازن';$('#openValue').textContent=p.openness+'%';$('#allowCreative').checked=p.allowCreative;$('#allowCode').checked=p.allowCode;$('#allowRoleplay').checked=p.allowRoleplay;$('#allowWeb').checked=p.allowWeb;$('#customAllow').value=p.customAllow;$('#customDeny').value=p.customDeny;$('#controlPanel').classList.remove('hidden');$('#controlPanel').classList.add('flex')}
-$('#openness').oninput=()=>$('#openValue').textContent=$('#openness').value+'%';$('#reasoningDepth').oninput=()=>$('#depthValue').textContent=['','سريع','متوازن','تحليل أعمق'][Number($('#reasoningDepth').value)];
-$('#closeControl').onclick=()=>{$('#controlPanel').classList.add('hidden');$('#controlPanel').classList.remove('flex')};
-$('#saveControl').onclick=async()=>{S.v.policy={openness:+$('#openness').value,depth:+$('#reasoningDepth').value,allowCreative:$('#allowCreative').checked,allowCode:$('#allowCode').checked,allowRoleplay:$('#allowRoleplay').checked,allowWeb:$('#allowWeb').checked,ageGroup:$('#ageGroup').value,customAllow:$('#customAllow').value.trim(),customDeny:$('#customDeny').value.trim()};await saveVault();$('#closeControl').click();toast('تم حفظ قواعد اللول')};
-$('#advancedControlBtn').onclick=()=>openControlPanel();
-
-/* ---------- الصور ---------- */
-function renderGallery(){
-  $('#gallery').innerHTML=S.gallery.length?'':'<p class="text-sm text-slate-500">رسوماتك هتظهر هنا.</p>';
-  S.gallery.forEach((g,i)=>{
-    const d=document.createElement('div');d.className='card !p-2';
-    d.innerHTML=`<img src="${g.url}" class="w-full rounded-xl bg-white/5"><p class="text-[11px] text-slate-400 mt-2 line-clamp-2" dir="ltr">${esc(g.prompt)}</p><div class="flex gap-2 mt-2"><button data-k="png" class="btn2 flex-1">⬇️ PNG</button>${g.svg?'<button data-k="svg" class="btn2 flex-1">⬇️ SVG</button>':''}</div>`;
-    d.querySelector('[data-k=png]').onclick=async()=>dl(g.svg?await svgToPng(g.svg,g.w,g.h):g.url,'ellool-'+i+'.png');
-    const sv=d.querySelector('[data-k=svg]');if(sv)sv.onclick=()=>dl(URL.createObjectURL(new Blob([g.svg],{type:'image/svg+xml'})),'ellool-'+i+'.svg');
-    $('#gallery').appendChild(d);
-  });
-}
-$('#enhBtn').onclick=async()=>{
-  const p=$('#imgPrompt').value.trim();if(!p){toast('اكتب وصف الصورة الأول');return}
-  const b=$('#enhBtn');b.disabled=true;const old=b.textContent;b.textContent='اللول بيفهم وصفك...';
-  try{
-    const engine=$('#imgEngine').value||'flux',style=[$('#imgPreset').value,$('#imgStyle').value,$('#imgCustomStyle').value.trim()].filter(Boolean).join('; '),aspect=$('#imgAspect').value,avoid=$('#imgAvoid').value.trim(),creativity=+$('#imgCreativity').value;
-    const refined=await buildVisualPrompt(p,style,aspect,engine,avoid,!!window.elloolImageData,creativity);
-    $('#imgPrompt').value=refined;
-    toast('تم فهم الوصف وتحويله لبرومبت احترافي');
-  }catch(e){toast('تعذر تحسين الوصف: '+e.message,1)}
-  b.disabled=false;b.textContent=old;setStatus('');
-};
-window.elloolImageData=null;
-$('#imgUpload').onchange=()=>{const f=$('#imgUpload').files?.[0];if(!f)return;if(f.size>12*1024*1024){toast('حجم الصورة الأقصى 12MB',1);return}const rd=new FileReader();rd.onload=()=>{window.elloolImageData=rd.result;$('#imgSourcePreview').src=rd.result;$('#imgSourcePreview').classList.remove('hidden');$('#clearImgSource').classList.remove('hidden')};rd.readAsDataURL(f)};
-$('#clearImgSource').onclick=()=>{window.elloolImageData=null;$('#imgUpload').value='';$('#imgSourcePreview').removeAttribute('src');$('#imgSourcePreview').classList.add('hidden');$('#clearImgSource').classList.add('hidden')};
-$('#imgEngine').onchange=()=>{const engine=$('#imgEngine').value;S.v.imageEngine=engine;const two=$('#imgCount').querySelector('option[value="2"]');if(two)two.disabled=engine==='ovh';if(engine==='ovh'&&$('#imgCount').value==='2')$('#imgCount').value='1';if(engine==='ovh')$('#imgStatus').textContent='محرك مجاني خارجي: صورتان كحد أقصى في الدقيقة، دون حساب أو بطاقة.';persist()};
-$('#imgCreativity').oninput=()=>$('#imgCreativityValue').textContent=$('#imgCreativity').value+' / 10';
-$('#imgAspectSecondary').onchange=()=>$('#imgAspect').value=$('#imgAspectSecondary').value;
-$('#imgAspect').onchange=()=>$('#imgAspectSecondary').value=$('#imgAspect').value;
-$('#genImgBtn').onclick=async()=>{
-  const p=$('#imgPrompt').value.trim();if(!p){$('#imgStatus').textContent='اكتب وصف الصورة الأول.';return}
-  if(!$('#imgEngine').value)$('#imgEngine').value='flux';
-  const b=$('#genImgBtn');b.disabled=true;$('#imgStatus').textContent='اللول بيحلّل الوصف...';
-  try{
-    const src=window.elloolImageData||null,engine=$('#imgEngine').value,style=[$('#imgPreset').value,$('#imgStyle').value,$('#imgCustomStyle').value.trim()].filter(Boolean).join('; '),aspect=$('#imgAspect').value,avoid=$('#imgAvoid').value.trim(),creativity=+$('#imgCreativity').value;
-    let finalPrompt=p;
-    if(engine!=='local')finalPrompt=await buildVisualPrompt(p,style,aspect,engine,avoid,!!src,creativity);
-    else if(/[^\x00-\x7F]/.test(p))throw new Error('المحرك المحلي لا يترجم العربية تلقائيًا. استخدم FLUX السحابي أو حسّن الوصف أولاً.');
-    $('#imgStatus').textContent='اللول بيولّد الصورة...';
-    const creativityValue=+$('#imgCreativity').value,guidance=Number((6.5-(creativityValue-1)*0.42).toFixed(2)),seedText=$('#imgSeed').value.trim(),seed=seedText===''?undefined:Number(seedText);
-    if(seedText!==''&&(!Number.isInteger(seed)||seed<0||seed>2147483647))throw new Error('رقم الصورة لازم يكون عددًا صحيحًا من 0 إلى 2147483647.');
-    const count=Math.max(1,Math.min(2,Number($('#imgCount').value)||1));
-    const results=[];
-    for(let i=0;i<count;i++){
-      $('#imgStatus').textContent=count===1?'اللول بيولّد الصورة...':`إنشاء النتيجة ${i+1} من ${count}...`;
-      const resultSeed=seed===undefined?undefined:Math.min(2147483647,seed+i);
-      const r=await genImage(finalPrompt,aspect,engine,src,{guidance,seed:resultSeed,steps:Number($('#imgSteps')?.value)||4});
-      results.push({...r,prompt:p});
-    }
-    S.gallery.unshift(...results);renderGallery();$('#imgStatus').textContent=count===1?'تم إنشاء الصورة بنجاح ✅':'تم إنشاء الصورتين بنجاح ✅';
-  }catch(e){$('#imgStatus').textContent='⚠️ '+e.message}
-  b.disabled=false;
-};
-
-/* ---------- تعديل فيديو محلي ---------- */
-let sourceVideoUrl=null;
-$('#videoUpload').onchange=()=>{const f=$('#videoUpload').files?.[0];if(!f)return;if(!f.type.startsWith('video/'))return toast('اختار ملف فيديو صحيح',1);if(f.size>250*1024*1024)return toast('الحد الأقصى 250MB في النسخة المحلية',1);if(sourceVideoUrl)URL.revokeObjectURL(sourceVideoUrl);sourceVideoUrl=URL.createObjectURL(f);$('#videoSource').src=sourceVideoUrl;$('#videoSource').classList.remove('hidden');$('#clearVideo').classList.remove('hidden');$('#videoSource').load()};
-$('#clearVideo').onclick=()=>{if(sourceVideoUrl)URL.revokeObjectURL(sourceVideoUrl);sourceVideoUrl=null;$('#videoSource').removeAttribute('src');$('#videoSource').classList.add('hidden');$('#clearVideo').classList.add('hidden');$('#videoUpload').value=''};
-$('#renderVideo').onclick=async()=>{const v=$('#videoSource'),status=$('#editVideoStatus'),btn=$('#renderVideo');if(!v.src)return toast('ارفع فيديو الأول',1);if(!v.videoWidth)return toast('انتظر تحميل الفيديو',1);btn.disabled=true;status.textContent='تجهيز التصدير...';try{const start=Math.max(0,+$('#videoStart').value||0),duration=Math.max(0,+$('#videoDuration').value||0);if(start>=v.duration)throw new Error('بداية المقطع بعد نهاية الفيديو');const end=duration?Math.min(v.duration,start+duration):v.duration;const W=Math.min(1280,v.videoWidth),H=Math.round(W*v.videoHeight/v.videoWidth),cv=document.createElement('canvas');cv.width=W;cv.height=H;const ctx=cv.getContext('2d');const stream=cv.captureStream(30);try{const audio=v.captureStream().getAudioTracks();audio.forEach(t=>stream.addTrack(t))}catch{}const mime=['video/webm;codecs=vp9','video/webm'].find(x=>MediaRecorder.isTypeSupported(x));if(!mime)throw new Error('المتصفح لا يدعم تصدير WebM');const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:6500000}),chunks=[];rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);const stopped=new Promise(r=>rec.onstop=r);const filter=$('#videoFilter').value,caption=$('#videoCaption').value.trim();v.currentTime=start;await new Promise((res,rej)=>{v.onseeked=res;v.onerror=()=>rej(new Error('تعذر قراءة الفيديو'))});await v.play();rec.start();await new Promise(resolve=>{const frame=()=>{if(v.currentTime>=end||v.ended){v.pause();return resolve()}ctx.save();ctx.filter=filter==='bw'?'grayscale(1)':filter==='vivid'?'saturate(1.5) contrast(1.08)':filter==='soft'?'brightness(1.12) saturate(.88)':filter==='cinema'?'contrast(1.12) saturate(1.12) sepia(.16)':'none';ctx.drawImage(v,0,0,W,H);ctx.filter='none';if(filter==='cinema'){ctx.fillStyle='rgba(7,18,30,.12)';ctx.fillRect(0,0,W,H)}if(caption){ctx.direction='rtl';ctx.textAlign='center';ctx.font='bold '+Math.max(22,W*.035)+'px Cairo';ctx.shadowColor='#000';ctx.shadowBlur=8;ctx.fillStyle='#fff';ctx.fillText(caption,W/2,H*.88,W*.85)}ctx.restore();requestAnimationFrame(frame);status.textContent='تصدير '+Math.round((v.currentTime-start)/(end-start)*100)+'%'};frame()});rec.stop();await stopped;const blob=new Blob(chunks,{type:mime}),url=URL.createObjectURL(blob);$('#editedVideo').src=url;$('#editedVideo').classList.remove('hidden');$('#editedVideoDl').href=url;$('#editedVideoDl').classList.remove('hidden');status.textContent='تم التصدير. الصوت يُحفظ إذا كان المتصفح يسمح بالتقاطه.'}catch(e){status.textContent='تعذر التصدير: '+e.message}finally{btn.disabled=false}};
-
-$('#localVideoBtn').onclick=async()=>{
-  const prompt=$('#localVideoPrompt').value.trim(),btn=$('#localVideoBtn'),status=$('#localVideoStatus');
-  if(!prompt)return toast('اكتب وصف الفيديو الأول',1);
-  btn.disabled=true;status.textContent='إرسال طلب الفيديو للمحرك المحلي...';$('#localVideoDl').classList.add('hidden');
-  try{
-    const seconds=Math.max(1,Math.min(5,+$('#localVideoSeconds').value||3));
-    const steps=Math.max(10,Math.min(40,+$('#localVideoSteps').value||30));
-    const result=await localEngineJob('/api/video',{prompt,width:832,height:480,seconds,steps},msg=>status.textContent=msg);
-    const video=$('#localVideoOut');video.src=result.url;video.classList.remove('hidden');$('#localVideoDl').href=result.url;$('#localVideoDl').classList.remove('hidden');status.textContent='اكتمل توليد الفيديو الحقيقي محليًا ✅';
-  }catch(e){status.textContent='تعذر التوليد: '+e.message}
-  finally{btn.disabled=false}
-};
-
-/* ---------- الفيديو ---------- */
-function wrapText(ctx,text,maxW){const words=text.split(' ');const lines=[];let cur='';for(const w of words){const t=cur?cur+' '+w:w;if(ctx.measureText(t).width>maxW&&cur){lines.push(cur);cur=w}else cur=t}if(cur)lines.push(cur);return lines}
-function drawScene(ctx,img,p,cap,W,H,ms,motion='dynamic',sceneIndex=0){
-  const iw=img.naturalWidth||W,ih=img.naturalHeight||H;
-  const mode=motion==='dynamic'?['pan','vertical','dolly','orbit'][sceneIndex%4]:motion;
-  const t=Math.max(0,Math.min(1,p)),wave=Math.sin(t*Math.PI*2);
-  let zoom=1.08,dx=0,dy=0,rot=0;
-  if(mode==='pan'){zoom=1.17;dx=(t-.5)*W*.13;dy=wave*H*.012}
-  else if(mode==='vertical'){zoom=1.16;dx=wave*W*.012;dy=(.5-t)*H*.13}
-  else if(mode==='dolly'){zoom=1.02+.18*(.5-.5*Math.cos(t*Math.PI*2));dx=wave*W*.018}
-  else {zoom=1.15;dx=wave*W*.035;dy=Math.cos(t*Math.PI*2)*H*.018;rot=wave*.012}
-  const sc=Math.max(W/iw,H/ih)*zoom,w=iw*sc,h=ih*sc;
-  ctx.save();ctx.translate(W/2,H/2);ctx.rotate(rot);
-  ctx.drawImage(img,-w/2+dx,-h/2+dy,w,h);ctx.restore();
-  const g=ctx.createLinearGradient(0,H*.5,0,H);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.82)');ctx.fillStyle=g;ctx.fillRect(0,H*.5,W,H*.5);
-  // Subtle animated light sweep adds motion beyond a static zoom.
-  const sweep=((t*1.35+sceneIndex*.23)%1.35)-.15;
-  const glow=ctx.createLinearGradient(W*sweep,0,W*(sweep+.28),H);
-  glow.addColorStop(0,'rgba(45,212,191,0)');glow.addColorStop(.5,'rgba(125,211,252,.075)');glow.addColorStop(1,'rgba(45,212,191,0)');
-  ctx.fillStyle=glow;ctx.fillRect(0,0,W,H);
-  // Moving fine particles for atmosphere; kept subtle so they do not obscure the scene.
-  for(let k=0;k<16;k++){const x=((k*173+ t*W*.22+sceneIndex*71)%(W+40))-20;const y=(k*97+Math.sin(t*6+k)*18)%(H*.72);ctx.beginPath();ctx.arc(x,y,1.2+(k%3)*.45,0,Math.PI*2);ctx.fillStyle='rgba(226,248,255,.22)';ctx.fill()}
-  ctx.fillStyle='#fff';ctx.font='bold 40px Cairo, sans-serif';ctx.textAlign='center';ctx.direction='rtl';
-  const lines=wrapText(ctx,cap||'',W*.8);lines.forEach((l,i)=>ctx.fillText(l,W/2,H-50-(lines.length-1-i)*54));
-  if(ms<500){ctx.fillStyle=`rgba(0,0,0,${1-ms/500})`;ctx.fillRect(0,0,W,H)}
-}
-const loadImg=url=>new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error('تعذر تحميل صورة المشهد'));i.src=url});
-$('#scBtn').onclick=async()=>{
-  const topic=$('#scTopic').value.trim();if(!topic)return;
-  const n=Math.min(8,Math.max(2,+$('#scN').value||4)),sec=Math.min(10,Math.max(2,+$('#scSec').value||4));
-  const b=$('#scBtn'),st=$('#scStatus');b.disabled=true;$('#scDl').classList.add('hidden');
-  try{
-    st.textContent='اللول بيكتب المشاهد...';
-    const raw=await ask(`You are a professional film director and storyboard artist. Understand the user's Arabic/Egyptian description exactly. Create exactly ${n} sequential cinematic shots for ONE coherent video. Every shot must advance the same story, preserve the same characters, face, age, clothing, objects, location and visual style across all scenes, and avoid introducing unrelated elements. Describe in ENGLISH: subject identity and consistent appearance, visible action, environment, camera framing/lens/movement, lighting, atmosphere, composition and transition-friendly ending. Make each shot visually distinct but continuity-safe. Output exactly ${n} lines, each formatted: detailed English visual prompt | concise Arabic caption. No numbering, no headings, no extra text, no markdown.`,'User video idea (preserve its meaning): '+topic,Math.min(1000,n*180));
-    let scenes=raw.split('\n').map(l=>l.replace(/^[\d\-\.\)\s*]+/,'').trim()).filter(l=>l.includes('|')).slice(0,n).map(l=>{const [p,...c]=l.split('|');return{prompt:p.trim(),caption:c.join('|').trim()}});
-    if(!scenes.length)scenes=topic.split('\n').filter(Boolean).slice(0,n).map(l=>({prompt:l,caption:l}));
-    const imgs=new Array(scenes.length);
-    for(let start=0;start<scenes.length;start+=2){
-      const end=Math.min(start+2,scenes.length);
-      st.textContent=`اللول بيرسم المشاهد ${start+1}–${end} من ${scenes.length}...`;
-      await Promise.all(scenes.slice(start,end).map(async(scene,j)=>{
-        const r=await genImage(scene.prompt+', cinematic wide scene, consistent film color grading','16:9','flux');
-        imgs[start+j]=await loadImg(r.url);
-      }));
-    }
-    await document.fonts.load('bold 40px Cairo');
-    const W=1280,H=720,cv=document.createElement('canvas');cv.width=W;cv.height=H;const ctx=cv.getContext('2d');
-    const mt=['video/webm;codecs=vp9','video/webm'].find(m=>MediaRecorder.isTypeSupported(m));
-    const rec=new MediaRecorder(cv.captureStream(30),{mimeType:mt,videoBitsPerSecond:6e6}),chunks=[];
-    rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);const stopped=new Promise(r=>rec.onstop=r);
-    const total=imgs.length*sec*1000;rec.start();const t0=performance.now();
-    await new Promise(res=>{const loop=()=>{
-      const t=performance.now()-t0;if(t>=total)return res();
-      const i=Math.min(imgs.length-1,Math.floor(t/(sec*1000))),local=t-i*sec*1000;
-      {
-        const motion=$('#scMotion').value,transition=$('#scTransition').value,progress=local/(sec*1000);
-        drawScene(ctx,imgs[i],progress,scenes[i].caption,W,H,local,motion,i);
-        if(i>0&&transition!=='cut'&&local<650){
-          ctx.save();ctx.globalAlpha=transition==='fade'?Math.max(0,1-local/650):Math.max(0,1-local/650)*.72;
-          if(transition==='cross')ctx.drawImage(imgs[i-1],0,0,W,H);
-          else {ctx.fillStyle='#020617';ctx.fillRect(0,0,W,H)}
-          ctx.restore();
-        }
-      }
-      st.textContent=`تصدير الفيديو... ${Math.round(t/total*100)}%`;requestAnimationFrame(loop)};loop()});
-    rec.stop();await stopped;
-    const url=URL.createObjectURL(new Blob(chunks,{type:'video/webm'}));
-    const v=$('#scOut');v.src=url;v.classList.remove('hidden');const a=$('#scDl');a.href=url;a.download='ellool-video.webm';a.classList.remove('hidden');st.textContent='تم ✅';
-  }catch(e){st.textContent='⚠️ '+e.message}
-  b.disabled=false;setStatus('');
-};
-
-/* ---------- الربط ---------- */
-async function callConn(name,method='GET',path='/',body){
-  const c=S.v.connectors.find(x=>x.name===name);if(!c)throw new Error('ربط غير موجود: '+name);
-  if(!['GET','POST','PUT','PATCH','DELETE'].includes(method))throw new Error('طريقة الطلب غير مسموحة');
-  if(body && String(typeof body==='string'?body:JSON.stringify(body)).length>20000)throw new Error('حجم جسم الطلب أكبر من 20KB');
-  const base=new URL(c.base);
-  if(base.username||base.password||base.hash)throw new Error('عنوان الربط لا يجب أن يحتوي بيانات دخول أو جزء #');
-  if(!(base.protocol==='https:'||(base.protocol==='http:'&&(base.hostname==='localhost'||base.hostname==='127.0.0.1'))))throw new Error('استخدم HTTPS، أو localhost للتطوير فقط');
-  const safePath=String(path||'/');
-  if(/^\s*(?:https?:)?\/\//i.test(safePath))throw new Error('اكتب مسار API فقط، وليس رابطاً كاملاً');
-  const u=new URL(c.base.replace(/\/+$/,'')+'/'+safePath.replace(/^\/+/,''));
-  if(u.origin!==base.origin)throw new Error('المسار خارج الموقع المربوط');
-  const h={};
-  if(c.auth==='bearer')h.Authorization='Bearer '+c.key;
-  else if(c.auth==='header')h[c.param||'x-api-key']=c.key;
-  else if(c.auth==='query')u.searchParams.set(c.param||'key',c.key);
-  const o={method,headers:h};
-  if(body&&method!=='GET'){h['Content-Type']='application/json';o.body=typeof body==='string'?body:JSON.stringify(body)}
-  const r=await fetch(u,o);const t=await r.text();
-  return 'HTTP '+r.status+'\n'+t.slice(0,4000);
-}
-function renderConn(){
-  $('#cList').innerHTML=S.v.connectors.map((c,i)=>`<div class="flex items-center justify-between bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs"><div><b>${esc(c.name)}</b> <span class="text-slate-500" dir="ltr">${esc(c.base)}</span></div><button data-i="${i}" class="text-rose-400">حذف</button></div>`).join('')||'<p class="text-xs text-slate-500">مفيش ربطات لسه.</p>';
-  $$('#cList [data-i]').forEach(b=>b.onclick=()=>{S.v.connectors.splice(+b.dataset.i,1);persist();renderConn()});
-  $('#cSel').innerHTML=S.v.connectors.map(c=>`<option>${esc(c.name)}</option>`).join('');
-}
-$('#cSave').onclick=()=>{
-  const name=$('#cName').value.trim().replace(/\s+/g,'-'),base=$('#cBase').value.trim();
-  if(!name||!base)return toast('الاسم والعنوان مطلوبين',1);
-  try{new URL(base)}catch{return toast('العنوان مش صحيح',1)}
-  S.v.connectors=S.v.connectors.filter(c=>c.name!==name);
-  S.v.connectors.push({name,base,auth:$('#cAuth').value,param:$('#cParam').value.trim(),key:$('#cKey').value});
-  $('#cKey').value='';persist();renderConn();toast('اتحفظ ومشفّر');
-};
-$('#cSend').onclick=async()=>{
-  const o=$('#cOut');o.textContent='...';let body=$('#cBody').value.trim();
-  try{o.textContent=await callConn($('#cSel').value,$('#cMethod').value,$('#cPath').value||'/',body||undefined)}catch(e){o.textContent='⚠️ '+e.message}
-};
-
-/* ---------- مفاتيح اللول ---------- */
-function renderKeys(){
-  $('#kList').innerHTML=S.v.keys.map((k,i)=>`<div class="flex items-center justify-between bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs ${k.revoked?'opacity-40':''}"><div><b>${esc(k.label)}</b> <span class="text-slate-500" dir="ltr">${esc(k.prefix)}…</span> <span class="text-slate-600">${new Date(k.created).toLocaleDateString('ar-EG')}</span></div><button data-i="${i}" class="text-rose-400">${k.revoked?'ملغي':'إلغاء'}</button></div>`).join('')||'<p class="text-xs text-slate-500">مفيش مفاتيح لسه.</p>';
-  $$('#kList [data-i]').forEach(b=>b.onclick=()=>{S.v.keys[+b.dataset.i].revoked=true;persist();renderKeys()});
-}
-$('#kGen').onclick=async()=>{
-  const label=$('#kLabel').value.trim()||'مفتاح';
-  const raw='ell_'+b64u(crypto.getRandomValues(new Uint8Array(32)));
-  S.v.keys.push({id:'k'+Date.now(),label,prefix:raw.slice(0,10),hash:await shaRaw(raw),created:Date.now()});
-  await saveVault();$('#kLabel').value='';renderKeys();
-  openModal('مفتاحك الجديد — انسخه دلوقتي',`<p class="text-xs text-amber-300 mb-2">مش هيظهر تاني. المحفوظ عندي بصمته بس.</p><pre class="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs break-all whitespace-pre-wrap text-left" dir="ltr">${esc(raw)}</pre><button class="btn mt-3" id="cpKey">نسخ</button>`);
-  $('#cpKey').onclick=()=>{navigator.clipboard.writeText(raw);toast('اتنسخ')};
-};
-$('#kGate').onclick=()=>{
-  const hashes=S.v.keys.filter(k=>!k.revoked).map(k=>k.hash);
-  const code=`// Cloudflare Worker: بوابة اللول قدام خادمك الخاص
-// 1) أنشئ Worker وانسخ الكود ده فيه
-// 2) أضف متغيرات: UPSTREAM_URL (عنوان خادمك المتوافق مع OpenAI، مثل https://brain.example.com/v1)
-//    و MODEL (اسم النموذج) و UPSTREAM_KEY (اختياري)
-// 3) استدعِ: POST <worker>/chat/completions مع Authorization: Bearer ell_...
-const HASHES=${JSON.stringify(hashes)};
-async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return btoa(String.fromCharCode(...new Uint8Array(b)))}
-export default{async fetch(req,env){
-  const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Authorization,Content-Type','Access-Control-Allow-Methods':'POST,OPTIONS'};
-  if(req.method==='OPTIONS')return new Response(null,{headers:cors});
-  const key=(req.headers.get('Authorization')||'').replace('Bearer ','');
-  if(!HASHES.includes(await sha(key)))return new Response('{"error":"unauthorized"}',{status:401,headers:cors});
-  const body=await req.json();if(env.MODEL)body.model=env.MODEL;
-  const h={'Content-Type':'application/json'};if(env.UPSTREAM_KEY)h.Authorization='Bearer '+env.UPSTREAM_KEY;
-  const r=await fetch(env.UPSTREAM_URL.replace(/\\/+$/,'')+'/chat/completions',{method:'POST',headers:h,body:JSON.stringify(body)});
-  return new Response(r.body,{status:r.status,headers:{...cors,'Content-Type':r.headers.get('Content-Type')||'application/json'}});
-}}`;
-  openModal('كود البوابة الوسيطة',`<pre class="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs overflow-auto max-h-[55vh] text-left" dir="ltr">${esc(code)}</pre><button class="btn mt-3" id="cpGate">نسخ الكود</button><p class="text-xs text-slate-500 mt-2">لو ألغيت مفتاح أو أضفت واحد جديد، انسخ الكود تاني وحدّث الـ Worker.</p>`);
-  $('#cpGate').onclick=()=>{navigator.clipboard.writeText(code);toast('اتنسخ')};
-};
-
-/* ---------- الإعدادات ---------- */
-function fillSettings(){
-  const v=S.v;$('#sEngine').value=v.engine;$('#mLocal').value=v.localModel;$('#svUrl').value=v.server.url;$('#svModel').value=v.server.model;$('#svKey').value=v.server.key||'';$('#imgSrv').value=v.imgServer||'';$('#localImgUrl').value=v.localImageEngine?.url||'http://127.0.0.1:8000';$('#localImgKey').value=v.localImageEngine?.key||'';$('#sSys').value=v.system;$('#sLock').value=v.lock;
-}
-$('#localImgTest').onclick=async()=>{
-  const status=$('#localImgStatus'),base=$('#localImgUrl').value.trim().replace(/\/+$/,''),key=$('#localImgKey').value.trim(),btn=$('#localImgTest');
-  btn.disabled=true;status.textContent='جاري الاختبار...';
-  try{
-    if(!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/i.test(base))throw new Error('استخدم http://127.0.0.1:8000');
-    const info=await fetch(base+'/api/info');if(!info.ok)throw new Error('المحرك المحلي لا يستجيب: '+info.status);
-    const meta=await info.json();
-    const auth=await fetch(base+'/api/jobs/__ellool_auth_check__',{headers:{'X-API-Key':key}});
-    if(auth.status===401)throw new Error('مفتاح الربط غير صحيح.');
-    if(auth.status!==404)throw new Error('تعذر التحقق من مفتاح الربط.');
-    status.textContent='متصل ✅ '+meta.device+' · '+(meta.video_ready?'الفيديو الحقيقي متاح':'صور فقط على هذا الجهاز');
-    S.v.localImageEngine={url:base,key};await saveVault();
-  }catch(e){status.textContent='غير متصل: '+e.message}
-  finally{btn.disabled=false}
-};
-$('#sSave').onclick=async()=>{
-  const v=S.v;v.engine='cloudflare';v.engineChoiceVersion=4;
-  v.server={url:$('#svUrl').value.trim(),model:$('#svModel').value.trim(),key:$('#svKey').value};v.imgServer=$('#imgSrv').value.trim();v.localImageEngine={url:$('#localImgUrl').value.trim()||'http://127.0.0.1:8000',key:$('#localImgKey').value.trim()};
-  v.system=$('#sSys').value;v.lock=Math.max(1,+$('#sLock').value||15);await saveVault();toast('اتحفظ');startIdle();
-};
-$('#prepBtn').onclick=async()=>{return; /* local model downloads are disabled */
-  S.v.localModel=$('#mLocal').value.trim()||S.v.localModel;await saveVault();
-  const b=$('#prepBtn');b.disabled=true;
-  try{await ensureLocal();toast('النموذج المحلي جاهز. اختاره من قائمة المحرك لو عايز تستخدمه.')}catch(e){toast(e.message,1);setStatus('')}
-  b.disabled=false;
-};
-$('#sReset').onclick=()=>{$('#sSys').value=PERSONA;toast('اضغط حفظ للتأكيد')};
-$('#passSave').onclick=async()=>{
-  const p=$('#newPass').value;
-  if(p){if(p.length<10)return toast('كلمة السر لازم 10 أحرف على الأقل',1);
-    S.salt=crypto.getRandomValues(new Uint8Array(16));S.key=await deriveKey(p,S.salt);localStorage.removeItem('ellool_gate');$('#newPass').value=''}
-  S.v.lock=Math.max(1,+$('#sLock').value||15);await saveVault();startIdle();toast('اتحدّث الأمان');
-};
-$('#wipeBtn').onclick=()=>{if(confirm('هتمسح كل المحادثات والربطات والإعدادات نهائياً. متأكد؟')){localStorage.removeItem('ellool_vault');localStorage.removeItem('ellool_gate');location.reload()}};
-$('#lockBtn').onclick=()=>location.reload();
-
-/* ---------- قفل تلقائي ---------- */
-let idleT,idleBound=false;
-function startIdle(){
-  const reset=()=>{clearTimeout(idleT);idleT=setTimeout(()=>location.reload(),(S.v.lock||15)*60000)};
-  if(!idleBound){idleBound=true;['mousemove','keydown','click','touchstart'].forEach(e=>document.addEventListener(e,()=>{if(!S.locked)reset()},{passive:true}))}
-  reset();
-}
-
-function boot(){
-  marked.setOptions({breaks:true});
-  $('#chatIn').placeholder='اسأل أي سؤال، اطلب كود احترافي، أو قول: ارسم لي شعار...';
-  if(!S.v.chats.length)newChat();else S.cur=S.v.chats[0].id;
-  renderChats();renderMsgs();startIdle();explainEngineAvailability();
-}
-renderMsgs();
-
-async function initAuth(){
-  const hasVault=!!localStorage.getItem('ellool_vault');
-  const hint=$('#authHint'),confirmWrap=$('#authConfirmWrap'),submit=$('#authSubmit'),pass=$('#authPass');
-  if(!hasVault){
-    // New vaults require a strong password; existing vaults must accept
-    // their original password even if it predates the 10-character rule.
-    hint.textContent='أول استخدام: أنشئ كلمة سر قوية لحماية بياناتك';
-    confirmWrap.classList.remove('hidden');
-    submit.textContent='إنشاء الخزنة وبدء الاستخدام';
-    pass.autocomplete='new-password';
-    pass.minLength=10;
-  }else{
-    hint.textContent='أدخل كلمة السر القديمة نفسها لفك تشفير خزنتك.';
-    confirmWrap.classList.add('hidden');
-    submit.disabled=false;pass.disabled=false;
-    submit.textContent='فتح اللول';
-    pass.autocomplete='current-password';
-    pass.minLength=0;
-  }
-  let authRunning=false;
-  const runAuth=async()=>{
-    if(authRunning)return;
-    authRunning=true;
-    const p=pass.value,err=$('#authError');
-    err.classList.add('hidden');submit.disabled=true;submit.textContent='جاري فتح الخزنة…';
-    try{
-      if(!localStorage.getItem('ellool_vault')){
-        if(p.length<10)throw new Error('استخدم كلمة سر من 10 أحرف على الأقل.');
-        if(p!==$('#authConfirm').value)throw new Error('كلمتا السر غير متطابقتين.');
-        await createFirstVault(p);
-      }else{
-        const ok=await unlock(p);
-        if(!ok)throw new Error('تعذر فك تشفير الخزنة. تأكد من كلمة السر وافتح الموقع على نفس المتصفح والجهاز اللذين أنشأت عليهما الخزنة.');
-      }
-      S.locked=false;document.body.classList.remove('locked');
-      $('#authScreen').classList.add('hidden');
-      boot();toast('أهلاً بك في اللول ✅');
-    }catch(ex){
-      err.textContent=ex?.message||'تعذر فتح الخزنة';
-      err.classList.remove('hidden');
-      console.error('ELLOOL vault login failed:',ex);
-    }finally{
-      authRunning=false;submit.disabled=false;submit.textContent=localStorage.getItem('ellool_vault')?'فتح اللول':'إنشاء الخزنة وبدء الاستخدام';
-    }
-  };
-  // Handle both a direct tap and keyboard form submission.
-  submit.addEventListener('click',e=>{e.preventDefault();runAuth()});
-  $('#authForm').addEventListener('submit',e=>{e.preventDefault();runAuth()});
-  pass.focus();
-}
-initAuth().catch(e=>toast('تعذر تهيئة شاشة الدخول: '+e.message,1));
+initAuth().catch(e=>toast('تعذر تشغيل اللول: '+(e.message||e),1));
 </script>
 
 <script type="module">

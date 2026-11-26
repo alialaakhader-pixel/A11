@@ -3,6 +3,8 @@
 // OVHcloud documents the model as Free and anonymous traffic at 2 requests/minute per IP/model.
 export const config = { maxDuration: 300 };
 
+const BLOCK = /\b(nude|naked|nsfw|porn|sex|sexual|erotic|explicit|gore|child ?abuse|loli|shota)\b|عاري|عارية|إباحي|اباحي|جنس|جنسي|فاضح/i;
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -13,6 +15,8 @@ export default async function handler(req, res) {
   if (!prompt || prompt.length > 5000) {
     return res.status(400).json({ error: 'اكتب وصفًا للصورة لا يتجاوز 5000 حرف.' });
   }
+
+  if (BLOCK.test(prompt)) return res.status(400).json({ error: 'الوصف غير مناسب. الاستوديو لا ينشئ محتوى غير لائق.' });
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 270000);
