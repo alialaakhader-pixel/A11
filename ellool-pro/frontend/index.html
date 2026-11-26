@@ -277,6 +277,7 @@ aside{background:linear-gradient(180deg,rgba(15,23,42,.92),rgba(2,6,23,.96))!imp
             <button id="cloudSignup" type="button" class="btn">إنشاء حساب سحابي</button>
             <button id="cloudLogin" type="button" class="btn2">تسجيل الدخول</button>
           </div>
+          <button id="cloudGoogle" type="button" class="btn2 w-full" style="display:flex;align-items:center;justify-content:center;gap:10px"><span style="font:700 18px Arial,sans-serif;color:#4285f4">G</span> المتابعة باستخدام Google</button>
           <p id="cloudStatus" class="text-xs text-slate-400" aria-live="polite">غير متصل بالحساب السحابي.</p>
           <div class="grid sm:grid-cols-3 gap-2">
             <button id="cloudSync" type="button" class="btn2" disabled>رفع نسخة مشفّرة</button>
@@ -1107,6 +1108,13 @@ async function restoreVault(){
     location.reload();
   }catch(e){status('تعذرت الاستعادة: '+(e.message||'خطأ غير معروف'),true)}
 }
+async function googleSignIn(){
+  try{
+    const {error}=await cloud.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname}});
+    if(error)throw error;
+  }catch(e){status('تعذر الدخول بـ Google: '+(e.message||'حاول لاحقًا.'),true)}
+}
+byId('cloudGoogle')?.addEventListener('click',googleSignIn);
 byId('cloudSignup')?.addEventListener('click',signUp);
 byId('cloudLogin')?.addEventListener('click',signIn);
 byId('cloudSync')?.addEventListener('click',syncVault);
