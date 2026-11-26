@@ -11,12 +11,29 @@ export default{async fetch(req,env){const origin=req.headers.get("Origin")||"",a
 if(req.method==="GET"&&u.pathname==="/health")return json({ok:true,service:"ELLOOL AI",engine:"Cloudflare Workers AI",model:MODEL,fallback:FALLBACK_MODEL,image_model:IMAGE_MODEL,fast_image_model:FAST_IMAGE_MODEL,fast_image_enabled:env.ENABLE_FLUX1_SCHNELL==="true"},200,h);
 if(!allowed)return json({error:{message:"عنوان الموقع غير مسموح. افتح النسخة الرسمية من ELLOOL."}},403,{"Vary":"Origin"});
 if(req.method==="OPTIONS")return new Response(null,{status:204,headers:h});
-const isImage=req.method==="POST"&&u.pathname==="/v1/images/generations",isChat=req.method==="POST"&&["/v1/chat/completions","/chat/completions"].includes(u.pathname);
-if(!isImage&&!isChat)return json({error:{message:"المسار غير موجود."}},404,h);
+const isVision=req.method==="POST"&&u.pathname==="/v1/vision",isImage=req.method==="POST"&&u.pathname==="/v1/images/generations",isChat=req.method==="POST"&&["/v1/chat/completions","/chat/completions"].includes(u.pathname);
+if(!isImage&&!isChat&&!isVision)return json({error:{message:"المسار غير موجود."}},404,h);
 const ip=req.headers.get("CF-Connecting-IP")||"unknown",now=Date.now(),recent=(hits.get(ip)||[]).filter(t=>now-t<60000);
-if(recent.length>=(isImage?8:15))return json({error:{message:"وصلت للحد المؤقت للطلبات. انتظر دقيقة ثم حاول مرة أخرى."}},429,h);
+if(recent.length>=(isImage?8:isVision?6:15))return json({error:{message:"وصلت للحد المؤقت للطلبات. انتظر دقيقة ثم حاول مرة أخرى."}},429,h);
 recent.push(now);hits.set(ip,recent);if(hits.size>2000)for(const[k,v]of hits)if(!v.length||now-v[v.length-1]>120000)hits.delete(k);
-let b;try{const raw=await req.text();if(raw.length>(isImage?7000000:90000))return json({error:{message:"حجم الطلب أكبر من الحد المسموح."}},413,h);b=JSON.parse(raw)}catch{return json({error:{message:"صيغة الطلب غير صالحة."}},400,h)}
+let b;try{const raw=await req.text();if(raw.length>((isImage||isVision)?7000000:90000))return json({error:{message:"حجم الطلب أكبر من الحد المسموح."}},413,h);b=JSON.parse(raw)}catch{return json({error:{message:"صيغة الطلب غير صالحة."}},400,h)}
+if(isVision){
+ const vm=Array.isArray(b.messages)?b.messages.slice(0,4):[];
+ const hasImg=vm.some(m=>Array.isArray(m?.content)&&m.content.some(p=>p?.type==="image_url"&&typeof p?.image_url?.url==="string"&&p.image_url.url.startsWith("data:image/")));
+ if(!hasImg)return json({error:{message:"أرسل صورة المسألة."}},400,h);
+ const vmax=Math.max(64,Math.min(Number(b.max_tokens)||600,900));
+ const VMODELS=["@cf/meta/llama-3.2-11b-vision-instruct","@cf/meta/llama-4-scout-17b-16e-instruct"];
+ for(const vmodel of VMODELS){
+  try{
+   let out;
+   try{out=await env.AI.run(vmodel,{messages:vm,max_tokens:vmax,temperature:0.1})}
+   catch(e1){if(/agree|license/i.test(String(e1?.message||e1))){await env.AI.run(vmodel,{prompt:"agree"});out=await env.AI.run(vmodel,{messages:vm,max_tokens:vmax,temperature:0.1})}else throw e1}
+   const text=typeof out==="string"?out:(out?.response||out?.choices?.[0]?.message?.content||"");
+   if(text)return json({choices:[{message:{role:"assistant",content:String(text)}}],model:vmodel},200,h);
+  }catch(e){console.error("ELLOOL_VISION_FAILED",vmodel,String(e?.message||e).slice(0,400))}
+ }
+ return json({error:{message:"تعذر قراءة الصورة الآن."}},503,h);
+}
 if(isImage){
  const prompt=typeof b.prompt==="string"?b.prompt.trim():"";
  if(!prompt||prompt.length>2048)return json({error:{message:"اكتب وصفاً للصورة لا يتجاوز 2048 حرفاً."}},400,h);
