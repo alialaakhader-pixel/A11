@@ -1,5 +1,6 @@
 const MODEL="@cf/meta/llama-3.1-8b-instruct-fp8-fast";
 const FALLBACK_MODEL="@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+const ALLOWED_CHAT=["@cf/meta/llama-4-scout-17b-16e-instruct","@cf/meta/llama-3.3-70b-instruct-fp8-fast"];
 const IMAGE_MODEL="@cf/black-forest-labs/flux-2-klein-4b";
 const FAST_IMAGE_MODEL="@cf/black-forest-labs/flux-1-schnell";
 const hits=new Map();
@@ -82,7 +83,7 @@ if(!msgs.some(m=>m.role==="system"))msgs.unshift({role:"system",content:"أنت 
 const max=Math.max(128,Math.min(Number(b.max_tokens)||850,1100)),temperature=Math.max(0.1,Math.min(Number(b.temperature??0.55),0.9));
 try{
  let stream;
- try{stream=await env.AI.run(MODEL,{messages:msgs,max_tokens:max,temperature,stream:true})}
+ try{stream=await env.AI.run((typeof b.model==="string"&&ALLOWED_CHAT.includes(b.model))?b.model:MODEL,{messages:msgs,max_tokens:max,temperature,stream:true})}
  catch(primaryError){stream=await env.AI.run(FALLBACK_MODEL,{messages:msgs,max_tokens:Math.min(max,900),temperature,stream:true})}
  return new Response(stream,{status:200,headers:{...h,"Content-Type":"text/event-stream; charset=utf-8","Cache-Control":"no-cache, no-transform","Connection":"keep-alive","X-Accel-Buffering":"no"}});
 
