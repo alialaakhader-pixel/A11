@@ -12,15 +12,20 @@ export default{async fetch(req,env){const origin=req.headers.get("Origin")||"",a
 if(req.method==="GET"&&u.pathname==="/health")return json({ok:true,service:"ELLOOL AI",engine:"Cloudflare Workers AI",model:MODEL,fallback:FALLBACK_MODEL,image_model:IMAGE_MODEL,fast_image_model:FAST_IMAGE_MODEL,fast_image_enabled:env.ENABLE_FLUX1_SCHNELL==="true"},200,h);
 if(!allowed)return json({error:{message:"عنوان الموقع غير مسموح. افتح النسخة الرسمية من ELLOOL."}},403,{"Vary":"Origin"});
 if(req.method==="OPTIONS")return new Response(null,{status:204,headers:h});
-const isVision=req.method==="POST"&&u.pathname==="/v1/vision",isImage=req.method==="POST"&&u.pathname==="/v1/images/generations",isSTT=req.method==="POST"&&u.pathname==="/v1/transcribe",isChat=req.method==="POST"&&["/v1/chat/completions","/chat/completions"].includes(u.pathname);
-if(!isImage&&!isChat&&!isVision&&!isSTT)return json({error:{message:"المسار غير موجود."}},404,h);
+const isVision=req.method==="POST"&&u.pathname==="/v1/vision",isImage=req.method==="POST"&&u.pathname==="/v1/images/generations",isSTT=req.method==="POST"&&u.pathname==="/v1/transcribe",isEmb=req.method==="POST"&&u.pathname==="/v1/embed",isChat=req.method==="POST"&&["/v1/chat/completions","/chat/completions"].includes(u.pathname);
+if(!isImage&&!isChat&&!isVision&&!isSTT&&!isEmb)return json({error:{message:"المسار غير موجود."}},404,h);
 const ip=req.headers.get("CF-Connecting-IP")||"unknown",now=Date.now(),recent=(hits.get(ip)||[]).filter(t=>now-t<60000);
-if(recent.length>=(isImage?8:isVision?6:isSTT?10:15))return json({error:{message:"وصلت للحد المؤقت للطلبات. انتظر دقيقة ثم حاول مرة أخرى."}},429,h);
+if(recent.length>=(isImage?8:isVision?6:isSTT?10:isEmb?60:15))return json({error:{message:"وصلت للحد المؤقت للطلبات. انتظر دقيقة ثم حاول مرة أخرى."}},429,h);
 recent.push(now);hits.set(ip,recent);if(hits.size>2000)for(const[k,v]of hits)if(!v.length||now-v[v.length-1]>120000)hits.delete(k);
-let b;try{const raw=await req.text();if(raw.length>((isImage||isVision||isSTT)?7000000:90000))return json({error:{message:"حجم الطلب أكبر من الحد المسموح."}},413,h);b=JSON.parse(raw)}catch{return json({error:{message:"صيغة الطلب غير صالحة."}},400,h)}
+let b;try{const raw=await req.text();if(raw.length>((isImage||isVision||isSTT||isEmb)?7000000:90000))return json({error:{message:"حجم الطلب أكبر من الحد المسموح."}},413,h);b=JSON.parse(raw)}catch{return json({error:{message:"صيغة الطلب غير صالحة."}},400,h)}
+if(isEmb){
+ const tx=Array.isArray(b.texts)?b.texts.slice(0,24).map(x=>String(x||"").slice(0,2500)).filter(Boolean):[];if(!tx.length)return json({error:{message:"لا يوجد نص."}},400,h);
+ try{const out=await env.AI.run("@cf/baai/bge-m3",{text:tx});const d=out?.data;if(!Array.isArray(d)||d.length!==tx.length)throw new Error("bad shape");return json({data:d},200,h)}
+ catch(e){console.error("ELLOOL_EMB_FAILED",String(e?.message||e).slice(0,300));return json({error:{message:"تعذر تحويل النص."}},503,h)}
+}
 if(isSTT){
  const au=typeof b.audio==="string"?b.audio:"";if(au.length<200||au.length>6000000)return json({error:{message:"أرسل تسجيلاً صوتياً قصيراً."}},400,h);
- try{const out=await env.AI.run("@cf/openai/whisper-large-v3-turbo",{audio:au,language:"ar",task:"transcribe"});const text=String(out?.text||"").trim();if(!text)return json({error:{message:"لم أسمع كلاماً واضحاً."}},422,h);return json({text},200,h)}
+ try{const out=await env.AI.run("@cf/openai/whisper-large-v3-turbo",{audio:au,language:"ar",task:"transcribe",vad_filter:b.raw!==true,initial_prompt:b.raw===true?undefined:("درس رياضيات بالعامية المصرية: المشتقة، التكامل، النهاية، المتطابقة، لوغاريتم، جا، جتا، ظا، س تربيع، س تكعيب، أس، جذر تربيعي، معادلة من الدرجة الثانية، الأعداد المركبة، المتتالية، الاحتمالات. "+(typeof b.hint==="string"?b.hint.slice(0,120):""))});const text=String(out?.text||"").trim();if(!text)return json({error:{message:"لم أسمع كلاماً واضحاً."}},422,h);return json({text},200,h)}
  catch(e){console.error("ELLOOL_STT_FAILED",String(e?.message||e).slice(0,300));return json({error:{message:"تعذر تحويل الصوت لنص."}},503,h)}
 }
 if(isVision){
